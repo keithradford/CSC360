@@ -1,8 +1,8 @@
 .phony all:
 all: PMan
 
-PMan: PMan.c
-	gcc PMan.c -lreadline -lhistory -o PMan
+PMan: main.c
+	gcc main.c -lreadline -lhistory -o PMan
 
 .PHONY clean:
 clean:

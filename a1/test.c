@@ -9,13 +9,23 @@
 int main(){
 
     char *input = NULL ;
-    char *prompt = "PMan:  >";
+    char *prompt = "PMan: > ";
 
     input = readline(prompt);
 
     printf("%s\n", input); //for testing purposes
 
-    if(strcmp(input, "bg"))
+    const char *split = " ";
+    char *token;
+    char *pid;
+    char *argv;
+
+    token = strtok(input, split);
+    pid = strtok(NULL, split);
+    argv = strtok(NULL, split);
+
+    printf("first: %s\nsecond: %s\nthird: %s\n", token, pid, argv);
+
 
     return 1;
 }
