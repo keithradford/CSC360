@@ -21,8 +21,6 @@ void check_zombieProcess(void);
 struct Node* head = NULL;
 
 int main(){
-	// head = (struct Node*)malloc(sizeof(struct Node));
-
 	while(1){	
 		char *cmd = readline("PMan: > ");
 		
@@ -59,9 +57,9 @@ int main(){
 		if (strcmp(cmd_type, CMD_BG) == 0){
 			bg_entry(argv);
 		}
-		// else if(cmd_type == CMD_BGLIST){
-		// 	bglist_entry();
-		// }
+		else if(strcmp(cmd_type, CMD_BGLIST) == 0){
+			print_list(head);
+		}
 		// else if(cmd_type == CMD_BGKILL || cmd_type == CMD_BGSTOP || cmd_type == CMD_BGCONT){
 		// 	pid = argv[0];
 		// 	bgsig_entry(pid, cmd_type);
