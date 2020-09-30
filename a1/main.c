@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <limits.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -21,6 +22,7 @@
 void bg_entry(char **argv);
 void check_zombieProcess(void);
 void bgsig_entry(pid_t pid, char* cmd);
+void pstat_entry(pid_t pid);
 pid_t to_int(char* str);	
 
 struct Node* head = NULL;
@@ -69,10 +71,11 @@ int main(){
 			pid_t pid = to_int(argv[0]);
 			bgsig_entry(pid, cmd_type);
 		}
-		// else if(cmd_type == CMD_PSTAT){
-		// 	pid = argv[0];
-		// 	pstat_entry(pid);
-		// }
+		else if(strcmp(cmd_type, CMD_PSTAT) == 0){
+			pid_t pid = to_int(argv[0]);
+			printf("%d\n", pid);
+			pstat_entry(pid);
+		}
 		// else {
 		// 	usage_pman();
 		// }
@@ -117,6 +120,36 @@ void bgsig_entry(pid_t pid, char* cmd){
 		// printf("killing\n");
 		int ret_val = kill(pid, SIGSTOP);
 	}
+}
+
+void pstat_entry(pid_t pid){
+	printf("fuck C\n");
+	printf("%d\n", pid);
+	char destination[INT_MAX] = {0};
+	snprintf(destination,"/proc/%d/stat",pid);
+
+	printf("hey\n");
+
+	char* comm = malloc(ARRAY_SIZE * sizeof(char*));
+	char state = '0';
+	unsigned long utime = 0;
+	unsigned long stime = 0;
+	long int rss = 0;
+
+	printf("yo\n");
+
+	FILE* ptr = fopen(destination, "r");
+	if(ptr == NULL){
+		printf("File does not exist\n");
+		return;
+	}
+
+	fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
+
+	fclose(ptr);
+
+	printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime, stime, rss);
+
 }
 
 // converts a string to it's equivalent integer
