@@ -5,6 +5,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include "llist.h"
+
 #define CMD_BG "bg"
 #define CMD_BGLIST "bglist"
 #define CMD_BGKILL "bgkill"

@@ -37,6 +37,10 @@ int main(){
 	third->data = 3;
 	third->next = NULL;
 
+	add(&head, 4);
+	add(&head, 3);
+	add(&head, 2);
+
 	print_list(head);	
 
 //--------------- PMAN----------------
