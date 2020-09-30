@@ -12,7 +12,6 @@
 #define CMD_BGCONT "bgstart"
 #define CMD_PSTAT "pstat"
 #define ARRAY_SIZE 10
-#define ARG_SIZE 40
 
 void bg_entry(char **argv);
 void check_zombieProcess(void);
@@ -47,7 +46,7 @@ int main(){
 		for(int j = 0; j < i; j++){
 			argv[j] = malloc( strlen(tmp[j]) * sizeof(char) );
 			strcpy(argv[j], tmp[j]);
-			printf("%s\n", argv[j]);
+			// printf("%s\n", argv[j]);
 		}
 		argv[i] = NULL;
 
@@ -75,7 +74,7 @@ int main(){
 }
 
 void bg_entry(char **argv){
-	printf("in bg_entry: %s\n%s\n%s\n", argv[0], argv[1], argv[2]);
+	// printf("in bg_entry: %s\n%s\n%s\n", argv[0], argv[1], argv[2]);
 	pid_t pid;
 	pid = fork();
 	if(pid == 0){

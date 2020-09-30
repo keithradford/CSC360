@@ -5,6 +5,8 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 
+#include "llist.h"
+
 // void expand_array(char *arr[]){
 // 	size_t n = sizeof(arr)/sizeof(arr[0]);
 // 	char tmp[n*2][40];
@@ -17,44 +19,64 @@
 
 
 int main(){
+//------------------------LINKED LIST--------------------------
+	struct Node* head = NULL;
+	struct Node* second = NULL;
+	struct Node* third = NULL;
 
-    char *input = NULL ;
-    char *prompt = "PMan: > ";
+	head = (struct Node*)malloc(sizeof(struct Node));
+	second = (struct Node*)malloc(sizeof(struct Node));
+	third = (struct Node*)malloc(sizeof(struct Node));
 
-    input = readline(prompt);
+	head->data = 1;
+	head->next = second;
 
-    printf("%s\n", input); //for testing purposes
+	second->data = 2;
+	second->next = third;
 
-    const char *split = " ";
-    char *token;
-    char *pid;
-    char *argv[10];
-	char *arg;
+	third->data = 3;
+	third->next = NULL;
 
-    token = strtok(input, split);
-    // pid = strtok(NULL, split);
-    arg = strtok(NULL, split);
+	print_list(head);	
 
-    int i = 0;
-	while(arg != NULL){
-		// if(i == 10){
-		// 	expand_array(argv);
-		// }
-		printf("%s\n%ld\n", arg, strlen(arg));
-		strcpy(argv[i], arg);
-		arg = strtok(NULL, split);
-		i++;
-	}
+//--------------- PMAN----------------
+ //    char *input = NULL ;
+ //    char *prompt = "PMan: > ";
 
-    printf("first: %s\nsecond: %s\n", token, pid);
+ //    input = readline(prompt);
 
-	size_t n = sizeof(argv)/sizeof(argv[0]);
+ //    printf("%s\n", input); //for testing purposes
 
-	for(int i = 0; i < n; i++){
-		if(argv[i]){
-			printf("%s\n", argv[i]);
-		}
-	}
+ //    const char *split = " ";
+ //    char *token;
+ //    char *pid;
+ //    char *argv[10];
+	// char *arg;
+
+ //    token = strtok(input, split);
+ //    // pid = strtok(NULL, split);
+ //    arg = strtok(NULL, split);
+
+ //    int i = 0;
+	// while(arg != NULL){
+	// 	// if(i == 10){
+	// 	// 	expand_array(argv);
+	// 	// }
+	// 	printf("%s\n%ld\n", arg, strlen(arg));
+	// 	strcpy(argv[i], arg);
+	// 	arg = strtok(NULL, split);
+	// 	i++;
+	// }
+
+ //    printf("first: %s\nsecond: %s\n", token, pid);
+
+	// size_t n = sizeof(argv)/sizeof(argv[0]);
+
+	// for(int i = 0; i < n; i++){
+	// 	if(argv[i]){
+	// 		printf("%s\n", argv[i]);
+	// 	}
+	// }
 
 	// free(argv);
 
