@@ -18,6 +18,8 @@
 void bg_entry(char **argv);
 void check_zombieProcess(void);
 
+struct Node* head = (struct Node*)malloc(sizeof(struct Node));	
+
 int main(){
 
 	while(1){	

@@ -3,6 +3,10 @@
 
 #include "llist.h"
 
+/*
+Linked List implementation from GeesForGeeks.org
+*/
+
 struct Node;
 
 void add(struct Node** head, int data){
