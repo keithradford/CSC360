@@ -1,9 +1,12 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/types.h>
 
 #include "llist.h"
 
@@ -16,7 +19,9 @@
 #define ARRAY_SIZE 10
 
 void bg_entry(char **argv);
-void check_zombieProcess(void);	
+void check_zombieProcess(void);
+void bgsig_entry(pid_t pid, char* cmd);
+pid_t to_int(char* str);	
 
 struct Node* head = NULL;
 
@@ -26,7 +31,6 @@ int main(){
 		
 		const char *split = " ";
    		char *cmd_type;
-   		char *pid;
    		char **tmp = malloc( ARRAY_SIZE * sizeof(char*) );
    		char *arg;
    		
@@ -60,10 +64,11 @@ int main(){
 		else if(strcmp(cmd_type, CMD_BGLIST) == 0){
 			print_list(head);
 		}
-		// else if(cmd_type == CMD_BGKILL || cmd_type == CMD_BGSTOP || cmd_type == CMD_BGCONT){
-		// 	pid = argv[0];
-		// 	bgsig_entry(pid, cmd_type);
-		// }
+		else if(strcmp(cmd_type, CMD_BGKILL) == 0|| strcmp(cmd_type, CMD_BGSTOP) == 0 || strcmp(cmd_type, CMD_BGCONT) == 0){
+			printf("yo\n");
+			pid_t pid = to_int(argv[0]);
+			bgsig_entry(pid, cmd_type);
+		}
 		// else if(cmd_type == CMD_PSTAT){
 		// 	pid = argv[0];
 		// 	pstat_entry(pid);
@@ -96,6 +101,32 @@ void bg_entry(char **argv){
 		perror("fork failed");
 		exit(EXIT_FAILURE);
 	}
+}
+
+void bgsig_entry(pid_t pid, char* cmd){
+	printf("bgentry: %d\n", pid);
+	if(strcmp(cmd, CMD_BGKILL) == 0){
+		// printf("killing\n");
+		int ret_val = kill(pid, SIGTERM);
+	}
+	else if(strcmp(cmd, CMD_BGCONT) == 0){
+		// printf("killing\n");
+		int ret_val = kill(pid, SIGCONT);
+	}
+	else if(strcmp(cmd, CMD_BGSTOP) == 0){
+		// printf("killing\n");
+		int ret_val = kill(pid, SIGSTOP);
+	}
+}
+
+// converts a string to it's equivalent integer
+pid_t to_int(char* str){
+	pid_t to_ret = 0;
+	int len = strlen(str);
+	for(int i = 0; i < len; i++){
+		to_ret = to_ret * 10 + (str[i] - '0');
+	}
+	return to_ret;
 }
 
 void check_zombieProcess(void){

@@ -20,7 +20,6 @@ void add(struct Node** head, pid_t data, char* directory){
 	struct Node* tmp = *head;
 	if(*head == NULL){
 		*head = n;
-		printf("hello\n");
 	}
 	else{
 		while(tmp->next != NULL){
