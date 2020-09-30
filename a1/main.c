@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <limits.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -125,30 +124,30 @@ void bgsig_entry(pid_t pid, char* cmd){
 void pstat_entry(pid_t pid){
 	printf("fuck C\n");
 	printf("%d\n", pid);
-	char destination[INT_MAX] = {0};
-	snprintf(destination,"/proc/%d/stat",pid);
+	char destination[100];
+	sprintf(destination,"/proc/%d/stat",pid);
 
-	printf("hey\n");
+	printf("%s\n", destination);
 
-	char* comm = malloc(ARRAY_SIZE * sizeof(char*));
-	char state = '0';
-	unsigned long utime = 0;
-	unsigned long stime = 0;
-	long int rss = 0;
+	// char* comm = malloc(ARRAY_SIZE * sizeof(char*));
+	// char state = '0';
+	// unsigned long utime = 0;
+	// unsigned long stime = 0;
+	// long int rss = 0;
 
-	printf("yo\n");
+	// printf("yo\n");
 
-	FILE* ptr = fopen(destination, "r");
-	if(ptr == NULL){
-		printf("File does not exist\n");
-		return;
-	}
+	// FILE* ptr = fopen(destination, "r");
+	// if(ptr == NULL){
+	// 	printf("File does not exist\n");
+	// 	return;
+	// }
 
-	fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
+	// fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
 
-	fclose(ptr);
+	// fclose(ptr);
 
-	printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime, stime, rss);
+	// printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime, stime, rss);
 
 }
 
