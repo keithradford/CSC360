@@ -28,7 +28,7 @@ int main(){
     const char *split = " ";
     char *token;
     char *pid;
-    char **argv = malloc(10 * sizeof(char*));
+    char *argv[10];
 	char *arg;
 
     token = strtok(input, split);
@@ -40,13 +40,11 @@ int main(){
 		// if(i == 10){
 		// 	expand_array(argv);
 		// }
-		argv[i] = malloc(strlen(arg) * sizeof(char));
+		printf("%s\n%ld\n", arg, strlen(arg));
 		strcpy(argv[i], arg);
-		free(argv[i]);
 		arg = strtok(NULL, split);
 		i++;
 	}
-	free(argv);
 
     printf("first: %s\nsecond: %s\n", token, pid);
 
@@ -57,6 +55,8 @@ int main(){
 			printf("%s\n", argv[i]);
 		}
 	}
+
+	// free(argv);
 
 
     return 1;
