@@ -25,33 +25,31 @@ int main(){
 		const char *split = " ";
    		char *cmd_type;
    		char *pid;
-   		char **tmp = malloc( ARRAY_SIZE * sizeof(char*) ); //figure out how to write to allocaed memor
+   		char **tmp = malloc( ARRAY_SIZE * sizeof(char*) );
    		char *arg;
    		
    		// parse command and arguments from readline
     	cmd_type = strtok(cmd, split);
-    	// pid = strtok(NULL, split);
     	arg = strtok(NULL, split);
 
     	// put arguments into a temp array of strings
     	int i = 0;
 		while(arg != NULL){
+			tmp[i] = malloc( strlen(arg) * sizeof(char) );
 			strcpy(tmp[i], arg);
 			arg = strtok(NULL, split);
 			i++;
 		}
 
 		// put arguments into appropriately sized array
-		char **argv = malloc( i * sizeof(char*) );
+		char **argv = malloc( (i + 1) * sizeof(char*) );
 	    printf("cmd: %s\n", cmd_type);
-		size_t n = sizeof(argv)/sizeof(argv[0]);
-		for(int i = 0; i < n; i++){
-			strcpy(argv[i], tmp[i]);
-			printf("%s\n", argv[i]);
+		for(int j = 0; j < i; j++){
+			argv[j] = malloc( strlen(tmp[j]) * sizeof(char) );
+			strcpy(argv[j], tmp[j]);
+			printf("%s\n", argv[j]);
 		}
-
-		free(tmp);
-		free(argv);
+		argv[i] = NULL;
 
 		// call appropriate function based on command
 		if (strcmp(cmd_type, CMD_BG) == 0){
@@ -77,7 +75,7 @@ int main(){
 }
 
 void bg_entry(char **argv){
-	printf("in bg_entry: %s\n", argv[0]);
+	printf("in bg_entry: %s\n%s\n%s\n", argv[0], argv[1], argv[2]);
 	pid_t pid;
 	pid = fork();
 	if(pid == 0){
