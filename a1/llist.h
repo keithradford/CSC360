@@ -2,12 +2,13 @@
 #define LINKED_LIST
 
 struct Node{
-	int data;
+	pid_t data;
+	char* directory;
 	struct Node* next;
 };
 
 // Node methods
-void add(struct Node** head, int data);
+void add(struct Node** head, pid_t data, char* directory);
 void print_list(struct Node* n);
 
 #endif

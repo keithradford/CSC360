@@ -16,11 +16,12 @@
 #define ARRAY_SIZE 10
 
 void bg_entry(char **argv);
-void check_zombieProcess(void);
+void check_zombieProcess(void);	
 
-struct Node* head = (struct Node*)malloc(sizeof(struct Node));	
+struct Node* head = NULL;
 
 int main(){
+	// head = (struct Node*)malloc(sizeof(struct Node));
 
 	while(1){	
 		char *cmd = readline("PMan: > ");
@@ -88,6 +89,9 @@ void bg_entry(char **argv){
 		exit(EXIT_SUCCESS);
 	}
 	else if(pid > 0) {
+		printf("pid: %d\n", pid);
+		add(&head, pid, argv[0]);
+		// print_list(head);
 		// store information of the background child process in your data structures
 	}
 	else {

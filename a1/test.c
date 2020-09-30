@@ -24,22 +24,25 @@ int main(){
 	struct Node* second = NULL;
 	struct Node* third = NULL;
 
-	head = (struct Node*)malloc(sizeof(struct Node));
+	// head = (struct Node*)malloc(sizeof(struct Node));
 	second = (struct Node*)malloc(sizeof(struct Node));
 	third = (struct Node*)malloc(sizeof(struct Node));
 
-	head->data = 1;
-	head->next = second;
+	// head->data = 1;
+	// head->directory = "/test/test/hey";
+	// head->next = second;
 
-	second->data = 2;
-	second->next = third;
+	// second->data = 2;
+	// head->directory = "/test/test/hello.c";
+	// second->next = third;
 
-	third->data = 3;
-	third->next = NULL;
+	// third->data = 3;
+	// head->directory = "/test/test/sup";
+	// third->next = NULL;
 
-	add(&head, 4);
-	add(&head, 3);
-	add(&head, 2);
+	add(&head, 4, "/4/..");
+	add(&head, 3, "hello/world");
+	add(&head, 2, "/foo");
 
 	print_list(head);	
 
