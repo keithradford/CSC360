@@ -2,7 +2,7 @@
 all: PMan
 
 PMan: main.c
-	gcc main.c llist.c -lreadline -lhistory -o PMan
+	gcc main.c llist.c -fno-stack-protector -lreadline -lhistory -o PMan
 
 .PHONY clean:
 clean:

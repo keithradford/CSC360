@@ -122,33 +122,49 @@ void bgsig_entry(pid_t pid, char* cmd){
 }
 
 void pstat_entry(pid_t pid){
-	printf("fuck C\n");
-	printf("%d\n", pid);
-	char destination[100];
-	sprintf(destination,"/proc/%d/stat",pid);
+	char stat[100];
+	sprintf(stat,"/proc/%d/stat",pid); //destination of the program's stat file
 
-	printf("%s\n", destination);
+	//stat declarations
+	char* comm = malloc(ARRAY_SIZE * sizeof(char*));
+	char state = '0';
+	unsigned long utime = 0;
+	unsigned long stime = 0;
+	long int rss = 0;
+	long int voluntary_ctxt_switches = 0;
+	long int nonvoluntary_ctxt_switches = 0;
 
-	// char* comm = malloc(ARRAY_SIZE * sizeof(char*));
-	// char state = '0';
-	// unsigned long utime = 0;
-	// unsigned long stime = 0;
-	// long int rss = 0;
+	//open file and parse stats
+	FILE* ptr = fopen(stat, "r");
+	if(ptr == NULL){
+		printf("File does not exist\n");
+		return;
+	}
+	fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
+	fclose(ptr);
 
-	// printf("yo\n");
+	printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime/sysconf(_SC_CLK_TCK), stime/sysconf(_SC_CLK_TCK), rss);
 
-	// FILE* ptr = fopen(destination, "r");
-	// if(ptr == NULL){
-	// 	printf("File does not exist\n");
-	// 	return;
-	// }
-
-	// fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
-
-	// fclose(ptr);
-
-	// printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime, stime, rss);
-
+	sprintf(stat,"/proc/%d/status",pid); //destination of the program's status file
+	ptr = fopen(stat, "r");
+	if(ptr == NULL){
+		printf("File does not exist\n");
+		return;
+	}
+	int buffer = 250;
+	char line[buffer];
+	while(fgets(line, buffer, ptr)){
+		char tmp[100];
+		strcpy(tmp, line);
+		char *str = strtok(tmp, ":");
+		if(strcmp(str, "voluntary_ctxt_switches") == 0){
+			printf("%s", line);
+		}
+		else if(strcmp(str, "nonvoluntary_ctxt_switches") == 0){
+			printf("%s\n", line);
+		}
+	}
+	fclose(ptr);
 }
 
 // converts a string to it's equivalent integer
