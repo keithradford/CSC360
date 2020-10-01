@@ -43,6 +43,9 @@ int main(){
 	add(&head, 4, "/4/..");
 	add(&head, 3, "hello/world");
 	add(&head, 2, "/foo");
+	
+	print_list(head);	
+	delete_node(&head, 4);
 
 	print_list(head);	
 

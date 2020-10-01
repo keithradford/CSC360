@@ -7,6 +7,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include "llist.h"
 
@@ -19,7 +20,7 @@
 #define ARRAY_SIZE 10
 
 void bg_entry(char **argv);
-void check_zombieProcess(void);
+void check_zombieProcess();
 void bgsig_entry(pid_t pid, char* cmd);
 void pstat_entry(pid_t pid);
 pid_t to_int(char* str);	
@@ -50,7 +51,7 @@ int main(){
 
 		// put arguments into appropriately sized array
 		char **argv = malloc( (i + 1) * sizeof(char*) );
-	    printf("cmd: %s\n", cmd_type);
+	    // printf("cmd: %s\n", cmd_type);
 		for(int j = 0; j < i; j++){
 			argv[j] = malloc( strlen(tmp[j]) * sizeof(char) );
 			strcpy(argv[j], tmp[j]);
@@ -66,18 +67,13 @@ int main(){
 			print_list(head);
 		}
 		else if(strcmp(cmd_type, CMD_BGKILL) == 0|| strcmp(cmd_type, CMD_BGSTOP) == 0 || strcmp(cmd_type, CMD_BGCONT) == 0){
-			printf("yo\n");
 			pid_t pid = to_int(argv[0]);
 			bgsig_entry(pid, cmd_type);
 		}
 		else if(strcmp(cmd_type, CMD_PSTAT) == 0){
 			pid_t pid = to_int(argv[0]);
-			printf("%d\n", pid);
 			pstat_entry(pid);
 		}
-		// else {
-		// 	usage_pman();
-		// }
 		check_zombieProcess();
 	}
 	return 0;
@@ -94,7 +90,7 @@ void bg_entry(char **argv){
 		exit(EXIT_SUCCESS);
 	}
 	else if(pid > 0) {
-		printf("pid: %d\n", pid);
+		// printf("pid: %d\n", pid);
 		add(&head, pid, argv[0]);
 		// print_list(head);
 		// store information of the background child process in your data structures
@@ -106,9 +102,10 @@ void bg_entry(char **argv){
 }
 
 void bgsig_entry(pid_t pid, char* cmd){
-	printf("bgentry: %d\n", pid);
+	// printf("bgentry: %d\n", pid);
 	if(strcmp(cmd, CMD_BGKILL) == 0){
 		// printf("killing\n");
+		delete_node(&head, pid);
 		int ret_val = kill(pid, SIGTERM);
 	}
 	else if(strcmp(cmd, CMD_BGCONT) == 0){
@@ -177,26 +174,27 @@ pid_t to_int(char* str){
 	return to_ret;
 }
 
-void check_zombieProcess(void){
+void check_zombieProcess(){
 	int status;
 	int retVal = 0;
 	
-	// while(1) {
-	// 	usleep(1000);
-	// 	if(headPnode == NULL){
-	// 		return ;
-	// 	}
-	// 	retVal = waitpid(-1, &status, WNOHANG);
-	// 	if(retVal > 0) {
-	// 		//remove the background process from your data structure
-	// 	}
-	// 	else if(retVal == 0){
-	// 		break;
-	// 	}
-	// 	else{
-	// 		perror("waitpid failed");
-	// 		exit(EXIT_FAILURE);
-	// 	}
-	// }
+	while(1) {
+		usleep(1000);
+		if(head == NULL){
+			return ;
+		}
+		retVal = waitpid(-1, &status, WNOHANG);
+		if(retVal > 0) {
+			//remove the background process from your data structure
+			delete_node(&head, retVal);
+		}
+		else if(retVal == 0){
+			break;
+		}
+		else{
+			perror("waitpid failed");
+			exit(EXIT_FAILURE);
+		}
+	}
 	return ;
 }
