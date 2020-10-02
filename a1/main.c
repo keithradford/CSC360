@@ -28,7 +28,7 @@ void check_zombieProcess();
 void bgsig_entry(pid_t pid, char* cmd);
 void pstat_entry(pid_t pid);
 pid_t string_to_int(char* str);	
-bool assert_cmd(char* cmd);
+bool verify_cmd(char* cmd);
 
 struct Node* head = NULL;
 
@@ -36,7 +36,9 @@ int main(){
 	while(1){	
 		char *cmd = readline("PMan: > ");
 
-		bool check = assert_cmd(cmd);
+		// verify the command is valid
+		// if invalid, prompt readline again
+		bool check = verify_cmd(cmd);
 		if(check == false){
 			continue;
 		}
@@ -87,8 +89,10 @@ int main(){
 			pid_t pid = string_to_int(argv[0]);
 			pstat_entry(pid);
 		}
+		free(tmp);
 		check_zombieProcess();
 	}
+
 	return 0;
 }
 
@@ -256,9 +260,25 @@ void check_zombieProcess(){
 	return ;
 }
 
-bool assert_cmd(char* cmd){
+/*
+ * Function: verify_cmd
+ * Parameters: 
+ * cmd, a string of the command to be verified
+ * Returns: a boolean value if the command is good or not
+ *
+ * verify_cmd checks a command entered into the PMan is a proper command.
+ * Prints error messages appropriately. 
+ * Checks for:
+ * - Valid command
+ * - Valid parameters
+ */
+bool verify_cmd(char* cmd){
+	char* tmp;
+	tmp = malloc(strlen(cmd) * sizeof(char)+1);
+	strcpy(tmp, cmd);
 	bool to_ret = true;
 	char *bglist = strtok(cmd, " ");
+	// printf("%s\n%s\n", cmd, tmp);
 	if(cmd[0] == '\0'){
 		printf("ERROR: Please enter one of the following commands:\n-bg <program> <arguments>\n-bg(kill/stop/start) <pid>\n-bglist\n-pstat <pid>\n");
 		to_ret = false;
@@ -266,15 +286,16 @@ bool assert_cmd(char* cmd){
 	else if(strcmp(cmd, CMD_BGKILL) == 0 ||
 		strcmp(cmd, CMD_BGSTOP) == 0 ||
 		strcmp(cmd, CMD_BGCONT) == 0 ||
-		strcmp(cmd, CMD_PSTAT) == 0 ){
+		strcmp(cmd, CMD_PSTAT) == 0 ||
+		strcmp(cmd, CMD_BG) == 0){
 		bool check_space = false;
-		for(int i = 0; cmd[i] != '\0'; i++){
-			if(cmd[i] == ' '){
+		for(int i = 0; tmp[i] != '\0'; i++){
+			if(tmp[i] == ' '){
 				check_space = true;
 			}
 		}
 		if(check_space == false){
-			printf("ERROR: Incorrect usage. Please include the process ID as an argument.\ni.e. > bgkill 1234\n");
+			printf("ERROR: Incorrect usage. Please include the process ID or program as an argument.\ni.e. > bgkill 1234\ni.e. > bg ./foo arg1\n");
 			to_ret = false;
 		}
 	}
@@ -284,7 +305,9 @@ bool assert_cmd(char* cmd){
 			printf("ERROR: Incorrect usage of bglist.\nCorrect usage: > bglist\n");
 			to_ret = false;
 		}
-	}	
+	}
 
+	strcpy(cmd, tmp);
+	free(tmp);
 	return to_ret;
 }

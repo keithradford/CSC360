@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 
 #include "llist.h"
 
@@ -46,12 +47,19 @@ void delete_node(struct Node** head, pid_t pid){
 	}
 
 	if(tmp == NULL){
-		printf("Could not delete node with pid %d\nNot found in linked list.", pid);
+		return;
 	}
 
 	prev->next = tmp->next;
 
 	free(tmp);
+}
+
+bool is_empty(struct Node** head){
+	if(head == NULL){
+		return true;
+	}
+	return false;
 }
 
 void print_list(struct Node* n){

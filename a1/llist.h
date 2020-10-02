@@ -11,5 +11,6 @@ struct Node{
 void add(struct Node** head, pid_t pid, char* directory);
 void delete_node(struct Node** head, pid_t pid);
 void print_list(struct Node* n);
+bool is_empty(struct Node** head);
 
 #endif
