@@ -27,7 +27,6 @@ void add(struct Node** head, pid_t pid, char* directory){
 		}
 		tmp->next = n;
 	}
-	free(n);
 	return;
 }
 

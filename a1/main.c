@@ -11,6 +11,7 @@
 
 #include "llist.h"
 
+// global variables
 #define CMD_BG "bg"
 #define CMD_BGLIST "bglist"
 #define CMD_BGKILL "bgkill"
@@ -18,12 +19,14 @@
 #define CMD_BGCONT "bgstart"
 #define CMD_PSTAT "pstat"
 #define ARRAY_SIZE 10
+#define BUFFER 256
 
+// function declarations
 void bg_entry(char **argv);
 void check_zombieProcess();
 void bgsig_entry(pid_t pid, char* cmd);
 void pstat_entry(pid_t pid);
-pid_t to_int(char* str);	
+pid_t string_to_int(char* str);	
 
 struct Node* head = NULL;
 
@@ -51,27 +54,30 @@ int main(){
 
 		// put arguments into appropriately sized array
 		char **argv = malloc( (i + 1) * sizeof(char*) );
-	    // printf("cmd: %s\n", cmd_type);
 		for(int j = 0; j < i; j++){
 			argv[j] = malloc( strlen(tmp[j]) * sizeof(char) );
 			strcpy(argv[j], tmp[j]);
-			// printf("%s\n", argv[j]);
 		}
-		argv[i] = NULL;
+ 		argv[i] = NULL;
 
 		// call appropriate function based on command
+		// bg <command> <arguments>
 		if (strcmp(cmd_type, CMD_BG) == 0){
 			bg_entry(argv);
 		}
+		// bglist
 		else if(strcmp(cmd_type, CMD_BGLIST) == 0){
 			print_list(head);
 		}
-		else if(strcmp(cmd_type, CMD_BGKILL) == 0|| strcmp(cmd_type, CMD_BGSTOP) == 0 || strcmp(cmd_type, CMD_BGCONT) == 0){
-			pid_t pid = to_int(argv[0]);
+		else if(strcmp(cmd_type, CMD_BGKILL) == 0 	// bgkill <pid>
+			|| strcmp(cmd_type, CMD_BGSTOP) == 0	// bgstop <pid>
+			|| strcmp(cmd_type, CMD_BGCONT) == 0){	// bgstart <pid>
+			pid_t pid = string_to_int(argv[0]);
 			bgsig_entry(pid, cmd_type);
 		}
+		// pstat <pid>
 		else if(strcmp(cmd_type, CMD_PSTAT) == 0){
-			pid_t pid = to_int(argv[0]);
+			pid_t pid = string_to_int(argv[0]);
 			pstat_entry(pid);
 		}
 		check_zombieProcess();
@@ -79,50 +85,75 @@ int main(){
 	return 0;
 }
 
+/*
+ * Function: bg_entry
+ * Parameter(s):
+ * argv, an array of arguments
+ *
+ * Runs a specified program (argv[0]) in the background as a child process.
+ */
 void bg_entry(char **argv){
-	// printf("in bg_entry: %s\n%s\n%s\n", argv[0], argv[1], argv[2]);
-	pid_t pid;
+	pid_t pid = 0;
 	pid = fork();
+	// child process
 	if(pid == 0){
 		if(execvp(argv[0], argv) < 0){
 			perror("Error on execvp");
 		}
 		exit(EXIT_SUCCESS);
 	}
+	// parent process
 	else if(pid > 0) {
-		// printf("pid: %d\n", pid);
 		add(&head, pid, argv[0]);
-		// print_list(head);
-		// store information of the background child process in your data structures
 	}
 	else {
-		perror("fork failed");
+		perror("Fork failed");
 		exit(EXIT_FAILURE);
 	}
 }
 
+/*
+ * Function: bgsig_entry
+ * Parameter(s):
+ * pid, a process id
+ * cmd, the command to execute
+ *
+ * Terminates, stops, or starts the process given by pid.
+ * Stopping a process allows for it to be started again.
+ * Terminating a process perma stops the process.
+ */
 void bgsig_entry(pid_t pid, char* cmd){
-	// printf("bgentry: %d\n", pid);
+	// if bgkill is passed in, kill  process <pid>
 	if(strcmp(cmd, CMD_BGKILL) == 0){
-		// printf("killing\n");
 		delete_node(&head, pid);
 		int ret_val = kill(pid, SIGTERM);
 	}
+	// if bgstart is passed in, start process <pid> again
 	else if(strcmp(cmd, CMD_BGCONT) == 0){
-		// printf("killing\n");
 		int ret_val = kill(pid, SIGCONT);
 	}
+	// if bgstop is passed in, stop process <pid>
 	else if(strcmp(cmd, CMD_BGSTOP) == 0){
-		// printf("killing\n");
 		int ret_val = kill(pid, SIGSTOP);
 	}
 }
 
+/*
+ * Function: pstat_entry
+ * Parameter(s):
+ * pid, a process id
+ *
+ * Provides a detailed list of the stats and status of a process.
+ * Prints the filename of the executable, the process state, time scheduled for the process in user mode,
+ * time scheduled for the process in kernal mode (clock ticks), resident set size,
+ * volunatry context switches, and nonvoluntary context switches in that order.
+ */
 void pstat_entry(pid_t pid){
-	char stat[100];
-	sprintf(stat,"/proc/%d/stat",pid); //destination of the program's stat file
+	char stat[BUFFER];
+	//destination of the program's stat file
+	sprintf(stat,"/proc/%d/stat",pid); 
 
-	//stat declarations
+	// stat declarations
 	char* comm = malloc(ARRAY_SIZE * sizeof(char*));
 	char state = '0';
 	unsigned long utime = 0;
@@ -131,7 +162,7 @@ void pstat_entry(pid_t pid){
 	long int voluntary_ctxt_switches = 0;
 	long int nonvoluntary_ctxt_switches = 0;
 
-	//open file and parse stats
+	// open file and parse stats
 	FILE* ptr = fopen(stat, "r");
 	if(ptr == NULL){
 		printf("File does not exist\n");
@@ -140,18 +171,21 @@ void pstat_entry(pid_t pid){
 	fscanf(ptr, "%*d %s %c %*d %*d %*d %*d %*d %*u %*u %*u %*u %*u %lu %lu %*d %*d %*d %*d %*d %*d %*u %*u %ld", comm, &state, &utime, &stime, &rss);
 	fclose(ptr);
 
+	// prints the stats
 	printf("comm: %s\nstate: %c\nutime: %lu\nstime: %lu\nrss: %ld\n", comm, state, utime/sysconf(_SC_CLK_TCK), stime/sysconf(_SC_CLK_TCK), rss);
 
-	sprintf(stat,"/proc/%d/status",pid); //destination of the program's status file
+	//destination of the program's status file
+	sprintf(stat,"/proc/%d/status",pid);
+
+	// open file and parse status
 	ptr = fopen(stat, "r");
 	if(ptr == NULL){
 		printf("File does not exist\n");
 		return;
 	}
-	int buffer = 250;
-	char line[buffer];
-	while(fgets(line, buffer, ptr)){
-		char tmp[100];
+	char line[BUFFER];
+	while(fgets(line, BUFFER, ptr)){
+		char tmp[BUFFER];
 		strcpy(tmp, line);
 		char *str = strtok(tmp, ":");
 		if(strcmp(str, "voluntary_ctxt_switches") == 0){
@@ -161,11 +195,21 @@ void pstat_entry(pid_t pid){
 			printf("%s\n", line);
 		}
 	}
+
+	free(comm);
 	fclose(ptr);
 }
 
-// converts a string to it's equivalent integer
-pid_t to_int(char* str){
+/*
+ * Function: string_to_int
+ * Parameter(s):
+ * str, a string of numbers
+ * Returns: an integer
+ * 
+ * Converts a string of numbers to an integer
+ * i.e. "1234" to the int 1234
+ */
+pid_t string_to_int(char* str){
 	pid_t to_ret = 0;
 	int len = strlen(str);
 	for(int i = 0; i < len; i++){
@@ -174,6 +218,12 @@ pid_t to_int(char* str){
 	return to_ret;
 }
 
+/*
+ * Function: check_zombieProcess
+ *
+ * Checks for any zombie processes.
+ * Removes any potential zombie processes from the linked list containing running proccesses.
+ */
 void check_zombieProcess(){
 	int status;
 	int retVal = 0;
@@ -185,7 +235,7 @@ void check_zombieProcess(){
 		}
 		retVal = waitpid(-1, &status, WNOHANG);
 		if(retVal > 0) {
-			//remove the background process from your data structure
+			// remove the background process from linked list
 			delete_node(&head, retVal);
 		}
 		else if(retVal == 0){
