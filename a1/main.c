@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
 
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -27,12 +28,18 @@ void check_zombieProcess();
 void bgsig_entry(pid_t pid, char* cmd);
 void pstat_entry(pid_t pid);
 pid_t string_to_int(char* str);	
+bool assert_cmd(char* cmd);
 
 struct Node* head = NULL;
 
 int main(){
 	while(1){	
 		char *cmd = readline("PMan: > ");
+
+		bool check = assert_cmd(cmd);
+		if(check == false){
+			continue;
+		}
 		
 		const char *split = " ";
    		char *cmd_type;
@@ -247,4 +254,37 @@ void check_zombieProcess(){
 		}
 	}
 	return ;
+}
+
+bool assert_cmd(char* cmd){
+	bool to_ret = true;
+	char *bglist = strtok(cmd, " ");
+	if(cmd[0] == '\0'){
+		printf("ERROR: Please enter one of the following commands:\n-bg <program> <arguments>\n-bg(kill/stop/start) <pid>\n-bglist\n-pstat <pid>\n");
+		to_ret = false;
+	}
+	else if(strcmp(cmd, CMD_BGKILL) == 0 ||
+		strcmp(cmd, CMD_BGSTOP) == 0 ||
+		strcmp(cmd, CMD_BGCONT) == 0 ||
+		strcmp(cmd, CMD_PSTAT) == 0 ){
+		bool check_space = false;
+		for(int i = 0; cmd[i] != '\0'; i++){
+			if(cmd[i] == ' '){
+				check_space = true;
+			}
+		}
+		if(check_space == false){
+			printf("ERROR: Incorrect usage. Please include the process ID as an argument.\ni.e. > bgkill 1234\n");
+			to_ret = false;
+		}
+	}
+	else if(strcmp(bglist, CMD_BGLIST) == 0){
+		char *args = strtok(NULL, " ");
+		if(args != NULL){
+			printf("ERROR: Incorrect usage of bglist.\nCorrect usage: > bglist\n");
+			to_ret = false;
+		}
+	}	
+
+	return to_ret;
 }
