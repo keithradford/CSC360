@@ -1,9 +1,14 @@
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <stdbool.h>
+
 #include <readline/readline.h>
 #include <readline/history.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 #include "llist.h"
 
@@ -20,34 +25,19 @@
 
 int main(){
 //------------------------LINKED LIST--------------------------
-	struct Node* head = NULL;
-	struct Node* second = NULL;
-	struct Node* third = NULL;
+	int i = 3;
 
-	// head = (struct Node*)malloc(sizeof(struct Node));
-	second = (struct Node*)malloc(sizeof(struct Node));
-	third = (struct Node*)malloc(sizeof(struct Node));
-
-	// head->data = 1;
-	// head->directory = "/test/test/hey";
-	// head->next = second;
-
-	// second->data = 2;
-	// head->directory = "/test/test/hello.c";
-	// second->next = third;
-
-	// third->data = 3;
-	// head->directory = "/test/test/sup";
-	// third->next = NULL;
-
-	add(&head, 4, "/4/..");
-	add(&head, 3, "hello/world");
-	add(&head, 2, "/foo");
-	
-	print_list(head);	
-	delete_node(&head, 4);
-
-	print_list(head);	
+	if(fork()){
+		i++;
+		fork();
+		i+=3;
+	}
+	else{
+		i+=4;
+		fork();
+		i+=5;
+	}
+	printf("%d\n", i);
 
 //--------------- PMAN----------------
  //    char *input = NULL ;
