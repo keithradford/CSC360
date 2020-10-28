@@ -2,7 +2,7 @@
 all: ACS
 
 ACS: main.c
-	gcc main.c -lpthread -o ACS
+	gcc main.c llist.c -lpthread -o ACS
 
 .PHONY clean:
 clean:

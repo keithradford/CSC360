@@ -10,11 +10,13 @@ Linked List implementation from GeesForGeeks.org
 
 struct Node;
 
-void add(struct Node** head, pid_t pid, char* directory){
+void add(struct Node** head, int user_id, int class_type, int service_time, int arrival_time){
 	// allocate new Node
 	struct Node* n = (struct Node*)malloc(sizeof(struct Node));
-	n->pid = pid;
-	n->directory = directory;
+	n->user_id = user_id;
+	n->class_type = class_type;
+	n->service_time = service_time;
+	n->arrival_time = arrival_time;
 	n->next = NULL;
 
 	// add Node to list
@@ -31,17 +33,17 @@ void add(struct Node** head, pid_t pid, char* directory){
 	return;
 }
 
-void delete_node(struct Node** head, pid_t pid){
+void delete_node(struct Node** head, int user_id){
 	struct Node* tmp = *head;
 	struct Node* prev = NULL;
 
-	if(tmp != NULL && tmp->pid == pid){
+	if(tmp != NULL && tmp->user_id == user_id){
 		*head = tmp->next;
 		free(tmp);
 		return;
 	}
 
-	while(tmp != NULL && tmp->pid != pid){
+	while(tmp != NULL && tmp->user_id != user_id){
 		prev = tmp;
 		tmp = tmp->next;
 	}
@@ -53,21 +55,4 @@ void delete_node(struct Node** head, pid_t pid){
 	prev->next = tmp->next;
 
 	free(tmp);
-}
-
-bool is_empty(struct Node** head){
-	if(head == NULL){
-		return true;
-	}
-	return false;
-}
-
-void print_list(struct Node* n){
-	int i = 0;
-	while(n != NULL){
-		printf("%d: %s\n", n->pid, n->directory);
-		n = n->next;
-		i++;
-	}
-	printf("Total background jobs: %d\n", i);
 }

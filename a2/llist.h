@@ -2,15 +2,15 @@
 #define LINKED_LIST
 
 struct Node{
-	pid_t pid;
-	char* directory;
+    int user_id;
+	int class_type;
+	int service_time;
+	int arrival_time;
 	struct Node* next;
 };
 
 // Node methods
-void add(struct Node** head, pid_t pid, char* directory);
-void delete_node(struct Node** head, pid_t pid);
-void print_list(struct Node* n);
-bool is_empty(struct Node** head);
+void add(struct Node** head, int user_id, int class_type, int service_time, int arrival_time);
+void delete_node(struct Node** head, int user_id);
 
 #endif
