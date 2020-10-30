@@ -10,6 +10,22 @@ Linked List implementation from GeesForGeeks.org
 
 struct Node;
 
+struct Node* getNode(struct Node** head, int user_id){
+	struct Node* tmp = *head;
+
+	if(tmp != NULL && tmp->user_id == user_id){
+		return tmp;
+	}
+
+	while(tmp != NULL && tmp->user_id != user_id){
+		tmp = tmp->next;
+	}
+
+	if(tmp == NULL){
+		return NULL;
+	}
+}
+
 void add(struct Node** head, int user_id, int class_type, int service_time, int arrival_time){
 	// allocate new Node
 	struct Node* n = (struct Node*)malloc(sizeof(struct Node));
