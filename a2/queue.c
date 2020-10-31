@@ -36,8 +36,23 @@ void enqueue(struct Queue* queue, int id){
 int dequeue(struct Queue* queue){
 	if(isEmpty(queue))
 		return INT_MIN;
-	int id = queue->front = (queue->front + 1) % queue->capacity;
+	int id = queue->array[queue->front];
+	queue->front = (queue->front + 1) % queue->capacity;
 	queue->size = queue->size - 1;
 	return id;
+}
+
+int front(struct Queue* queue){
+	if(isEmpty(queue))
+		return INT_MIN;
+	return queue->array[queue->back];
+}
+
+void toString(struct Queue* queue){
+	int len = sizeof(queue->array);
+	for(int i = 0; i < len; i++){
+		printf("%d ", queue->array[i]);
+	}
+	printf("\n");
 }
 
