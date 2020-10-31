@@ -7,7 +7,7 @@
 struct Queue;
 
 struct Queue* createQueue(unsigned capacity){
-	struct Queue* queue = (struct Queue*)malloc(sizeof(strut Queue));
+	struct Queue* queue = (struct Queue*)malloc(sizeof(struct Queue));
 	queue->capacity = capacity;
 	queue->front = queue->size = 0;
 
@@ -29,8 +29,8 @@ void enqueue(struct Queue* queue, int id){
 	if(isFull(queue))
 		return;
 	queue->back = (queue->back + 1) % queue->capacity;
-	queue->array[queue->back] = item;
-	// queue->size = queue->size + 1;
+	queue->array[queue->back] = id;
+	queue->size = queue->size + 1;
 }
 
 int dequeue(struct Queue* queue){
