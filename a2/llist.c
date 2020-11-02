@@ -22,7 +22,7 @@ struct Node* getNode(struct Node** head, int user_id){
 	}
 
 	if(tmp == NULL){
-		return NULL;
+		return tmp;
 	}
 }
 

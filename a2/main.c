@@ -39,6 +39,11 @@ pthread_cond_t clerk3_cv = PTHREAD_COND_INITIALIZER;
 pthread_cond_t clerk4_cv = PTHREAD_COND_INITIALIZER;
 pthread_mutex_t economy_mutex;
 pthread_mutex_t business_mutex;
+pthread_mutex_t clerk1_mutex;
+pthread_mutex_t clerk2_mutex;
+pthread_mutex_t clerk3_mutex;
+pthread_mutex_t clerk4_mutex;
+
 
 struct Queue* business_q = NULL;
 struct Queue* economy_q = NULL;
@@ -69,8 +74,8 @@ int main(int argc, char* argv[]) {
 		}
 	}
 
-	business_q = createQueue(customer_amnt);
-	economy_q = createQueue(customer_amnt);
+	business_q = createQueue(256);
+	economy_q = createQueue(256);
 
 	pthread_t clerkId[CLERK_AMNT];
 	int clerk_info[CLERK_AMNT] = {1, 2, 3, 4};
@@ -78,7 +83,12 @@ int main(int argc, char* argv[]) {
 	int custom_info[customer_amnt];
 
 	if(pthread_mutex_init(&economy_mutex, NULL) != 0 || pthread_mutex_init(&business_mutex, NULL) != 0){
-		printf("Error: Mutex init failed\n");
+		printf("Error: Queue mutex init failed\n");
+		exit(1);
+	}
+
+	if(pthread_mutex_init(&clerk1_mutex, NULL) != 0 || pthread_mutex_init(&clerk2_mutex, NULL) != 0 || pthread_mutex_init(&clerk3_mutex, NULL) != 0 || pthread_mutex_init(&clerk4_mutex, NULL) != 0){
+		printf("Error: Clerk mutex init failed\n");
 		exit(1);
 	}
 
@@ -87,18 +97,13 @@ int main(int argc, char* argv[]) {
 		pthread_create(&clerkId[i], NULL, clerk_entry, (void *)&clerk_info[i]); // clerk_info: passing the clerk information (e.g., clerk ID) to clerk thread
 	}
 
-			// printf("hello\n");
 	//create customer thread
+	struct Node* tmp = head;
 	for(int i = 0; i < customer_amnt; i++){ // number of customers
 		custom_info[i] = i + 1;
-		printf("%d\n%d\n", i, custom_info[i]);
-		pthread_create(&customId[i], NULL, customer_entry, (void *)&custom_info[i]); //custom_info: passing the customer information (e.g., customer ID, arrival time, service time, etc.) to customer thread
+		pthread_create(&customId[i], NULL, customer_entry, (void *)tmp); //custom_info: passing the customer information (e.g., customer ID, arrival time, service time, etc.) to customer thread
+		tmp = tmp->next;
 	}
-	// wait for all customer threads to terminate
-	// forEach customer thread{
-	// 	pthread_join(...);
-	// }
-	// destroy mutex & condition variable (optional)
 	for(int i = 0; i < customer_amnt; i++){
 		pthread_join(customId[i], NULL);
 	}
@@ -143,7 +148,6 @@ void add_customer_details(char* str){
 		else{
 			temp[cnt] = str[i];
 			temp[cnt+1] = '\0';
-			// printf("string %s\n", temp);
 			cnt++;
 		}
 	}
@@ -154,10 +158,9 @@ void add_customer_details(char* str){
 // function entry for customer threads
 
 void * customer_entry(void * cus_info){
-	int *user_id = (int *) cus_info;
-	struct Node* p_myInfo = getNode(&head, *user_id);
+	struct Node* p_myInfo = (struct Node*) cus_info;
 
-	usleep(p_myInfo->arrival_time);
+	usleep((p_myInfo->arrival_time)/100000);
 	
 	fprintf(stdout, "A customer arrives: customer ID %2d. \n", p_myInfo->user_id);
 
@@ -185,13 +188,9 @@ void * customer_entry(void * cus_info){
 		}
 
 
-		toString(selected_queue);
-
-		// printf(customer_selected[p_myInfo->class_type] ? "true\n" : "false\n");
+		// toString(selected_queue);
 
 		queue_enter_time = gettimeofday(&init_time, NULL);
-
-		// selected_queue->size = selected_queue->size + 1;
 		
 		while (true) {
 			if(p_myInfo->class_type == 0){
@@ -208,18 +207,20 @@ void * customer_entry(void * cus_info){
 		}
 			
 	}
-	if(p_myInfo->class_type == 0){
-		pthread_mutex_unlock(&economy_mutex);
-	}
-	else{
-		pthread_mutex_unlock(&business_mutex);
-	}
+
 	// pthread_mutex_unlock(&selected); //unlock mutex_lock such that other customers can enter into the queue
 	
 	/* Try to figure out which clerk awoken me, because you need to print the clerk Id information */
 	usleep(10); // Add a usleep here to make sure that all the other waiting threads have already got back to call pthread_cond_wait. 10 us will not harm your simulation time.
 	int clerk_woke_me_up = queue_status[p_myInfo->class_type];
 	queue_status[p_myInfo->class_type] = 0;
+
+	if(p_myInfo->class_type == 0){
+		pthread_mutex_unlock(&economy_mutex);
+	}
+	else{
+		pthread_mutex_unlock(&business_mutex);
+	}
 	
 	// get the current machine time; updates the overall_waiting_time
 	double cur_time = gettimeofday(&init_time, NULL);
@@ -239,7 +240,7 @@ void * customer_entry(void * cus_info){
 		pthread_cond_signal(&clerk2_cv);
 	else if(clerk_woke_me_up == 3)
 		pthread_cond_signal(&clerk3_cv);
-	else
+	else if(clerk_woke_me_up == 4)
 		pthread_cond_signal(&clerk4_cv);
 
 	pthread_exit(NULL);
@@ -255,42 +256,68 @@ void *clerk_entry(void * clerkNum){
 		int selected_queue_ID = 0;
 
 		int* clerkID = (int *) clerkNum;
+
+		if(*clerkID == 1)
+			pthread_mutex_lock(&clerk1_mutex);
+		else if(*clerkID == 2)
+			pthread_mutex_lock(&clerk2_mutex);
+		else if(*clerkID == 3)
+			pthread_mutex_lock(&clerk3_mutex);
+		else
+			pthread_mutex_lock(&clerk4_mutex);
 		
 		/* selected_queue_ID = Select the queue based on the priority and current customers number */
-		if(isEmpty(business_q)){
-			pthread_mutex_lock(&economy_mutex);			
+		if(isEmpty(business_q) && !isEmpty(economy_q)){
+			// pthread_mutex_lock(&economy_mutex);			
 			queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
 			pthread_cond_broadcast(&economy_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
 			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
-			pthread_mutex_unlock(&economy_mutex);
-			if(*clerkID == 1)
-				pthread_cond_wait(&clerk1_cv, &economy_mutex); // wait for the customer to finish its service, clerk busy
-			else if(*clerkID == 2)
-				pthread_cond_wait(&clerk2_cv, &economy_mutex);
-			else if(*clerkID == 3)
-				pthread_cond_wait(&clerk3_cv, &economy_mutex);
-			else
-				pthread_cond_wait(&clerk4_cv, &economy_mutex);
+
+			if(queue_status[selected_queue_ID] == 0){
+				if(*clerkID == 1)
+					pthread_cond_wait(&clerk1_cv, &economy_mutex); // wait for the customer to finish its service, clerk busy
+				else if(*clerkID == 2)
+					pthread_cond_wait(&clerk2_cv, &economy_mutex);
+				else if(*clerkID == 3)
+					pthread_cond_wait(&clerk3_cv, &economy_mutex);
+				else if(*clerkID == 4)
+					pthread_cond_wait(&clerk4_cv, &economy_mutex);
+			}
+
+			// pthread_mutex_unlock(&economy_mutex);
 		}
-		else{
+		else if(!isEmpty(business_q)){
 			selected_queue_ID = 1;
-			pthread_mutex_lock(&business_mutex);			
+			// pthread_mutex_lock(&business_mutex);			
 			queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
 			pthread_cond_broadcast(&business_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
 			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
-			pthread_mutex_unlock(&business_mutex);
-			if(*clerkID == 1)
-				pthread_cond_wait(&clerk1_cv, &business_mutex); // wait for the customer to finish its service, clerk busy
-			else if(*clerkID == 2)
-				pthread_cond_wait(&clerk2_cv, &business_mutex);
-			else if(*clerkID == 3)
-				pthread_cond_wait(&clerk3_cv, &business_mutex);
-			else
-				pthread_cond_wait(&clerk4_cv, &business_mutex);
+			
+			if(queue_status[selected_queue_ID] == 0){
+				if(*clerkID == 1)
+					pthread_cond_wait(&clerk1_cv, &business_mutex); // wait for the customer to finish its service, clerk busy
+				else if(*clerkID == 2)
+					pthread_cond_wait(&clerk2_cv, &business_mutex);
+				else if(*clerkID == 3)
+					pthread_cond_wait(&clerk3_cv, &business_mutex);
+				else if(*clerkID == 4)
+					pthread_cond_wait(&clerk4_cv, &business_mutex);
+			}
+
+			// pthread_mutex_unlock(&business_mutex);
 		}
 
+		if(*clerkID == 1)
+			pthread_mutex_unlock(&clerk1_mutex);
+		else if(*clerkID == 2)
+			pthread_mutex_unlock(&clerk2_mutex);
+		else if(*clerkID == 3)
+			pthread_mutex_unlock(&clerk3_mutex);
+		else
+			pthread_mutex_unlock(&clerk4_mutex);
+
 	}
-	
+
 	pthread_exit(NULL);
 	
 	return NULL;

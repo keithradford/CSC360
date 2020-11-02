@@ -31,6 +31,7 @@ void enqueue(struct Queue* queue, int id){
 	queue->back = (queue->back + 1) % queue->capacity;
 	queue->array[queue->back] = id;
 	queue->size = queue->size + 1;
+	// printf("Enqueued %d\n", id);
 }
 
 int dequeue(struct Queue* queue){
