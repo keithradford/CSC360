@@ -22,7 +22,7 @@ void *clerk_entry(void * clerkNum);
 
 /* global variables */
  
-struct timeval init_time; // use this variable to record the simulation start time; No need to use mutex_lock when reading this variable since the value would not be changed by thread once the initial time was set.
+static struct timeval init_time; // use this variable to record the simulation start time; No need to use mutex_lock when reading this variable since the value would not be changed by thread once the initial time was set.
 double overall_waiting_time; //A global variable to add up the overall waiting time for all customers, every customer add their own waiting time to this variable, mutex_lock is necessary.
 int queue_length[2];// variable stores the real-time queue length information; mutex_lock needed
 
@@ -43,12 +43,15 @@ pthread_mutex_t clerk1_mutex;
 pthread_mutex_t clerk2_mutex;
 pthread_mutex_t clerk3_mutex;
 pthread_mutex_t clerk4_mutex;
+pthread_mutex_t time_mutex;
 
 
 struct Queue* business_q = NULL;
 struct Queue* economy_q = NULL;
 
 int main(int argc, char* argv[]) {
+
+	gettimeofday(&init_time, NULL);
 
 	if(argc != 2){
 		printf("Error: Incorrect usage.\nCorrect usage: ./ACS <filename>\n");
@@ -92,6 +95,11 @@ int main(int argc, char* argv[]) {
 		exit(1);
 	}
 
+	if(pthread_mutex_init(&time_mutex, NULL) != 0){
+		printf("Error: Time mutex init failed\n");
+		exit(1);
+	}
+
 	//create clerk thread (optional)
 	for(int i = 0; i < CLERK_AMNT; i++){ // number of clerks
 		pthread_create(&clerkId[i], NULL, clerk_entry, (void *)&clerk_info[i]); // clerk_info: passing the clerk information (e.g., clerk ID) to clerk thread
@@ -119,6 +127,20 @@ int main(int argc, char* argv[]) {
 	
 	// calculate the average waiting time of all customers
 	return 0;
+}
+
+double getCurrentSimulationTime(){
+	struct timeval cur_time;
+	double cur_secs, init_secs;
+
+	pthread_mutex_lock(&time_mutex);
+	init_secs = (init_time.tv_sec + (double) init_time.tv_usec / 1000000);
+	pthread_mutex_unlock(&time_mutex);
+
+	gettimeofday(&cur_time, NULL);
+	cur_secs = (cur_time.tv_sec + (double) cur_time.tv_usec / 1000000);
+
+	return cur_secs - init_secs;
 }
 
 void add_customer_details(char* str){
@@ -160,7 +182,7 @@ void add_customer_details(char* str){
 void * customer_entry(void * cus_info){
 	struct Node* p_myInfo = (struct Node*) cus_info;
 
-	usleep((p_myInfo->arrival_time)/100000);
+	usleep((p_myInfo->arrival_time)*100000);
 	
 	fprintf(stdout, "A customer arrives: customer ID %2d. \n", p_myInfo->user_id);
 
@@ -223,14 +245,14 @@ void * customer_entry(void * cus_info){
 	}
 	
 	// get the current machine time; updates the overall_waiting_time
-	double cur_time = gettimeofday(&init_time, NULL);
+	double cur_time = getCurrentSimulationTime();
 	
 	fprintf(stdout, "A clerk starts serving a customer: start time %.2f, the customer ID %2d, the clerk ID %1d. \n", queue_enter_time, p_myInfo->user_id, clerk_woke_me_up);
 	
-	usleep((p_myInfo->service_time)/100000);
+	usleep((p_myInfo->service_time)*100000);
 	
 	/* get the current machine time; */
-	cur_time = gettimeofday(&init_time, NULL);
+	cur_time = getCurrentSimulationTime();
 	fprintf(stdout, "A clerk finishes serving a customer: end time %.2f, the customer ID %2d, the clerk ID %1d. \n", cur_time, p_myInfo->user_id, clerk_woke_me_up);
 	
 	// pthread_cond_signal( convar of the clerk signaled me ); // Notify the clerk that service is finished, it can serve another customer
