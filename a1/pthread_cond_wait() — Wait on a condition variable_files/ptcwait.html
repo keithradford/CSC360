@@ -1,0 +1,188 @@
+<!--?xml version="1.0" encoding="UTF-8"?-->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-us" lang="en-us"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta name="security" content="public">
+<meta name="Robots" content="index,follow">
+<meta name="DC.Type" content="topic">
+<meta name="DC.Title" content="pthread_cond_wait() — Wait on a condition variable">
+<meta name="DC.subject" content="pthread_cond_wait() library function, threads, condition variable, wait on, waiting, pthread_cond_wait(), condition, variable, wait on a, pthread_cond_wait">
+<meta name="keywords" content="pthread_cond_wait() library function, threads, condition variable, wait on, waiting, pthread_cond_wait(), condition, variable, wait on a, pthread_cond_wait">
+<meta name="DC.Relation" scheme="URI" content="keyword.htm">
+<meta name="prodname" content="z/OS XL C/C++">
+<meta name="version" content="2">
+<meta name="release" content="1">
+<meta name="prognum" content="5650-ZOS">
+<meta name="copyright" content="© Copyright IBM Corporation 1996, 2015">
+<meta name="DC.Rights.Owner" content="© Copyright IBM Corporation 1996, 2015">
+<meta name="DC.Date" scheme="iso8601" content="2015-02-06">
+<meta name="DC.Format" content="XHTML">
+<meta name="DC.Identifier" content="ptcwait">
+<meta name="DC.Language" content="en-us">
+<meta name="IBM.Country" content="ZZ">
+<!-- Licensed Materials - Property of IBM -->
+<!-- US Government Users Restricted Rights -->
+<!-- Use, duplication or disclosure restricted by -->
+<!-- GSA ADP Schedule Contract with IBM Corp. -->
+<link rel="stylesheet" type="text/css" href="ptcwait_data/ibmdita.css">
+<link rel="Start" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/keyword.htm">
+<title>pthread_cond_wait() — Wait on a condition variable</title>
+<link type="text/css" href="ptcwait_data/globaltopic.css" rel="stylesheet"><script type="text/javascript" charset="utf-8" src="ptcwait_data/globaltopic.js"></script><link type="text/css" href="ptcwait_data/spinner.css" rel="stylesheet"></head>
+<body id="ptcwait">
+<h1 class="title topictitle1" style="display: none;">pthread_cond_wait() — Wait on a condition variable</h1>
+<div class="body"><div class="section" id="ptcwait__p028st"><h2 class="title sectiontitle">Standards</h2> <div class="tablenoborder"><table summary="" class="table" rules="all" frame="border" cellspacing="0" cellpadding="4" border="1"><thead class="thead" align="left"><tr class="row"><th class="entry" id="d433362e56" width="59.01639344262295%" valign="top"><span class="keyword">Standards / Extensions</span></th>
+<th class="entry" id="d433362e59" width="16.39344262295082%" valign="top"><span class="keyword">C or C++</span></th>
+<th class="entry" id="d433362e62" width="24.59016393442623%" valign="top"><span class="keyword">Dependencies</span></th>
+</tr>
+</thead>
+<tbody class="tbody"><tr class="row"><td class="entry" headers="d433362e56 " width="59.01639344262295%" valign="top"><p class="lines">POSIX.4a<br>
+Single UNIX Specification, Version 3</p>
+</td>
+<td class="entry" headers="d433362e59 " width="16.39344262295082%" valign="top">both</td>
+<td class="entry" headers="d433362e62 " width="24.59016393442623%" valign="top"><p class="lines">POSIX(ON)</p>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="section" id="ptcwait__p028f"><h2 class="title sectiontitle">Format</h2> <pre class="pre codeblock"><code>#define _OPEN_THREADS
+#include &lt;pthread.h&gt;
+
+int pthread_cond_wait(pthread_cond_t *<span class="ph synph"><span class="ph var">cond</span></span>, pthread_mutex_t *<span class="ph synph"><span class="ph var">mutex</span></span>);</code></pre>
+ <div class="p"><strong class="ph b">SUSV3:</strong> <pre class="pre codeblock"><code>#define _UNIX03_THREADS 
+#include &lt;pthread.h&gt;
+int pthread_cond_wait(pthread_cond_t * __restrict__cond, 
+                      pthread_mutex_t * __restrict__mutex);</code></pre>
+</div>
+</div>
+<div class="section" id="ptcwait__p028d"><h2 class="title sectiontitle">General description</h2> <p class="p">Blocks on
+a condition variable. It must be called with <span class="ph synph"><span class="ph var">mutex</span></span> locked
+by the calling thread, or undefined behavior will result.  A mutex
+is locked using pthread_mutex_lock().</p>
+ <p class="p"><span class="ph synph"><span class="ph var">cond</span></span> is
+a condition variable that is shared by threads. To change it, a thread
+must hold the <span class="ph synph"><span class="ph var">mutex</span></span> associated with the
+condition variable. The pthread_cond_wait() function releases this <span class="ph synph"><span class="ph var">mutex</span></span> before
+suspending the thread and obtains it again before returning.</p>
+ <p class="p">The
+pthread_cond_wait() function waits until a pthread_cond_broadcast()
+or a pthread_cond_signal() is received. For more information on these
+functions, refer to <a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/ptcbdct.htm?view=kc#ptcbdct">pthread_cond_broadcast() — Broadcast a condition</a> and
+to <a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/ptcsig.htm?view=kc#ptcsig">pthread_cond_signal() — Signal a condition</a>.</p>
+</div>
+<div class="section"><h2 class="title sectiontitle">Returned value</h2> <p class="p">If successful, pthread_cond_wait()
+returns 0.</p>
+ <div class="p">If unsuccessful, pthread_cond_wait() returns -1
+and sets errno to one of the following values:  <dl class="dl"><dt class="dthd"><strong>Error Code</strong></dt>
+<dd class="ddhd"><strong>Description</strong></dd>
+<dt class="dt dlterm">EINVAL</dt>
+<dd class="dd">Different mutexes were specified for concurrent operations on
+the same condition variable.</dd>
+<dt class="dt dlterm">EPERM</dt>
+<dd class="dd">The mutex was not owned by the current thread at the time of the
+call.</dd>
+</dl>
+</div>
+ <p class="p"><strong class="ph b">Special behavior for Single UNIX Specification, Version 3:</strong> If
+unsuccessful, pthread_cond_wait() returns an error number to indicate
+the error.</p>
+</div>
+<div class="section"><h2 class="title sectiontitle">Usage notes</h2> <p class="p">If the condition variable is
+shared (PTHREAD_PROCESS_SHARED), the mutex must also be shared, with
+the _OPEN_SYS_MUTEX_EXT feature defined when the mutex was created
+and initialized.</p>
+ <p class="p">If the condition variable is private (PTHREAD_PROCESS_PRIVATE),
+the mutex must also be private.</p>
+ <p class="p">If the condition variable is
+shared, all calls to pthread_cond_wait() or pthread_cont_timedwait()
+for a given condition variable must use the same mutex for the life
+of the process, or until both the condition variable and mutex are
+destroyed (using pthread_cond-destroy() and pthread_mutex_destroy()). </p>
+</div>
+<div class="section" id="ptcwait__p028e"><h2 class="title sectiontitle">Example</h2> <div class="p"><strong class="ph b">CELEBP22</strong>    <pre class="pre codeblock"><code>⁄* CELEBP22 *⁄                                   
+#define _OPEN_THREADS                                                           
+#include &lt;pthread.h&gt;                                                            
+#include &lt;stdio.h&gt;                                                              
+#include &lt;time.h&gt;                                                               
+#include &lt;unistd.h&gt;                                                             
+                                                                                
+pthread_cond_t cond;                                                            
+pthread_mutex_t mutex;                                                          
+                                                                                
+int footprint = 0;                                                              
+                                                                                
+void *thread(void *arg) {                                                       
+  time_t T;                                                                     
+                                                                                
+  if (pthread_mutex_lock(&amp;mutex) != 0) {                                        
+    perror("pthread_mutex_lock() error");                                       
+    exit(6);                                                                    
+  }                                                                             
+  time(&amp;T);                                                                     
+  printf("starting wait at %s", ctime(&amp;T));                                     
+  footprint++;                                                                  
+                                                                                
+  if (pthread_cond_wait(&amp;cond, &amp;mutex) != 0) {                                  
+    perror("pthread_cond_timedwait() error");                                   
+    exit(7);                                                                    
+  }                                                                             
+  time(&amp;T);                                                                     
+  printf("wait over at %s", ctime(&amp;T));                                         
+}                                                                               
+                                                                                
+main() {                                                                        
+  pthread_t thid;                                                               
+  time_t T;                                                                     
+  struct timespec t;                                                            
+                                                                                
+  if (pthread_mutex_init(&amp;mutex, NULL) != 0) {                                  
+    perror("pthread_mutex_init() error");                                       
+    exit(1);                                                                    
+  }                                                                             
+                                                                                
+  if (pthread_cond_init(&amp;cond, NULL) != 0) {                                    
+    perror("pthread_cond_init() error");                                        
+    exit(2);                                                                    
+  }                                                                             
+                                                                                
+  if (pthread_create(&amp;thid, NULL, thread, NULL) != 0) {                         
+    perror("pthread_create() error");                                           
+    exit(3);                                                                    
+  }                                                                             
+                                                                                
+  while (footprint == 0)                                                        
+    sleep(1);                                                                   
+                                                                                
+  puts("IPT is about ready to release the thread");                             
+  sleep(2);                                                                     
+                                                                                
+  if (pthread_cond_signal(&amp;cond) != 0) {                                        
+    perror("pthread_cond_signal() error");                                      
+    exit(4);                                                                    
+  }                                                                             
+                                                                                
+  if (pthread_join(thid, NULL) != 0) {                                          
+    perror("pthread_join() error");                                             
+    exit(5);                                                                    
+  }                                                                             
+}                                                                               </code></pre>
+</div>
+ <div class="p"><strong class="ph b">Output:</strong>  <pre class="pre codeblock"><code>starting wait at Fri Jun 16 10:54:06 <span class="keyword">2001</span>
+IPT is about ready to release the thread
+wait over at Fri Jun 16 10:54:09 <span class="keyword">2001</span></code></pre>
+</div>
+</div>
+<div class="section" id="ptcwait__p028ri"><h2 class="title sectiontitle">Related information</h2> <ul class="ul" compact="compact"><li class="li"><a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/pthrdh.htm?view=kc#pthrdh">pthread.h</a></li>
+<li class="li"><a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/ptcbdct.htm?view=kc#ptcbdct">pthread_cond_broadcast() — Broadcast a condition</a></li>
+<li class="li"><a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/ptcsig.htm?view=kc#ptcsig">pthread_cond_signal() — Signal a condition</a></li>
+<li class="li"><a class="xref" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/ptctdwt.htm?view=kc#ptctdwt">pthread_cond_timedwait() — Wait on a condition variable</a></li>
+</ul>
+</div>
+</div>
+<div class="related-links">
+<div class="familylinks">
+<div class="parentlink"><strong>Parent topic:</strong> <a class="link" href="https://www.ibm.com/support/knowledgecenter/SSLTBW_2.1.0/com.ibm.zos.v2r1.bpxbd00/keyword.htm?view=kc">Library functions</a></div>
+</div>
+</div><script type="text/javascript">var _cf = _cf || []; _cf.push(['_setFsp', true]);  _cf.push(['_setBm', true]);  _cf.push(['_setAu', '/assets/0397e17aui23057c98c158630b4136']); </script><script type="text/javascript" src="0397e17aui23057c98c158630b4136.js"></script>
+</body></html>

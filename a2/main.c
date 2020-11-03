@@ -261,7 +261,7 @@ void * customer_entry(void * cus_info){
 	/* get the current machine time; */
 	cur_time = getCurrentSimulationTime();
 	fprintf(stdout, "A clerk finishes serving a customer: end time %.2f, the customer ID %2d, the clerk ID %1d. \n", cur_time, p_myInfo->user_id, clerk_woke_me_up);
-	
+
 	// pthread_cond_signal( convar of the clerk signaled me ); // Notify the clerk that service is finished, it can serve another customer
 	if(clerk_woke_me_up == 1)
 		pthread_cond_signal(&clerk1_cv); // wait for the customer to finish its service, clerk busy
@@ -286,14 +286,14 @@ void *clerk_entry(void * clerkNum){
 
 		int* clerkID = (int *) clerkNum;
 
-		if(*clerkID == 1)
-			pthread_mutex_lock(&clerk1_mutex);
-		else if(*clerkID == 2)
-			pthread_mutex_lock(&clerk2_mutex);
-		else if(*clerkID == 3)
-			pthread_mutex_lock(&clerk3_mutex);
-		else if(*clerkID == 4)
-			pthread_mutex_lock(&clerk4_mutex);
+		// if(*clerkID == 1)
+		// 	pthread_mutex_lock(&clerk1_mutex);
+		// else if(*clerkID == 2)
+		// 	pthread_mutex_lock(&clerk2_mutex);
+		// else if(*clerkID == 3)
+		// 	pthread_mutex_lock(&clerk3_mutex);
+		// else if(*clerkID == 4)
+		// 	pthread_mutex_lock(&clerk4_mutex);
 		
 		/* selected_queue_ID = Select the queue based on the priority and current customers number */
 		if(isEmpty(business_q) && !isEmpty(economy_q)){
@@ -302,7 +302,9 @@ void *clerk_entry(void * clerkNum){
 			pthread_cond_broadcast(&economy_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
 			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
 
-			if(queue_status[selected_queue_ID] == 0){
+			pthread_mutex_unlock(&economy_mutex);
+
+			// if(queue_status[selected_queue_ID] == 0){
 				if(*clerkID == 1)
 					pthread_cond_wait(&clerk1_cv, &economy_mutex); // wait for the customer to finish its service, clerk busy
 				else if(*clerkID == 2)
@@ -311,9 +313,7 @@ void *clerk_entry(void * clerkNum){
 					pthread_cond_wait(&clerk3_cv, &economy_mutex);
 				else if(*clerkID == 4)
 					pthread_cond_wait(&clerk4_cv, &economy_mutex);
-			}
-
-			pthread_mutex_unlock(&economy_mutex);
+			// }
 		}
 		else if(!isEmpty(business_q)){
 			selected_queue_ID = 1;
@@ -323,7 +323,9 @@ void *clerk_entry(void * clerkNum){
 			pthread_cond_broadcast(&business_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
 			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
 			
-			if(queue_status[selected_queue_ID] == 0){
+			pthread_mutex_unlock(&business_mutex);
+
+			// if(queue_status[selected_queue_ID] == 0){
 				if(*clerkID == 1)
 					pthread_cond_wait(&clerk1_cv, &business_mutex); // wait for the customer to finish its service, clerk busy
 				else if(*clerkID == 2)
@@ -332,19 +334,17 @@ void *clerk_entry(void * clerkNum){
 					pthread_cond_wait(&clerk3_cv, &business_mutex);
 				else if(*clerkID == 4)
 					pthread_cond_wait(&clerk4_cv, &business_mutex);
-			}
-
-			pthread_mutex_unlock(&business_mutex);
+			// }
 		}
 
-		if(*clerkID == 1)
-			pthread_mutex_unlock(&clerk1_mutex);
-		else if(*clerkID == 2)
-			pthread_mutex_unlock(&clerk2_mutex);
-		else if(*clerkID == 3)
-			pthread_mutex_unlock(&clerk3_mutex);
-		else if(*clerkID == 4)
-			pthread_mutex_unlock(&clerk4_mutex);
+		// if(*clerkID == 1)
+		// 	pthread_mutex_unlock(&clerk1_mutex);
+		// else if(*clerkID == 2)
+		// 	pthread_mutex_unlock(&clerk2_mutex);
+		// else if(*clerkID == 3)
+		// 	pthread_mutex_unlock(&clerk3_mutex);
+		// else if(*clerkID == 4)
+		// 	pthread_mutex_unlock(&clerk4_mutex);
 
 	}
 
