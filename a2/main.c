@@ -118,6 +118,10 @@ int main(int argc, char* argv[]) {
 
 	pthread_mutex_destroy(&business_mutex);
 	pthread_mutex_destroy(&economy_mutex);
+	pthread_mutex_destroy(&clerk1_mutex);
+	pthread_mutex_destroy(&clerk2_mutex);
+	pthread_mutex_destroy(&clerk3_mutex);
+	pthread_mutex_destroy(&clerk4_mutex);
 	pthread_cond_destroy(&business_cv);
 	pthread_cond_destroy(&economy_cv);
 	pthread_cond_destroy(&clerk1_cv);
@@ -187,7 +191,7 @@ void * customer_entry(void * cus_info){
 	fprintf(stdout, "A customer arrives: customer ID %2d. \n", p_myInfo->user_id);
 
 	struct Queue* selected_queue = NULL;
-	double queue_enter_time = 0.0;
+	double queue_enter_time = getCurrentSimulationTime();
 	
 	/* Enqueue operation: get into either business queue or economy queue by using p_myInfo->class_type*/	
 	if(p_myInfo->class_type == 0){
@@ -199,50 +203,56 @@ void * customer_entry(void * cus_info){
 		pthread_mutex_lock(&business_mutex); 
 	}
 	
-	{
-		fprintf(stdout, "A customer enters a queue: the queue ID %1d, and length of the queue %2d. \n", p_myInfo->class_type, selected_queue->size);
+	fprintf(stdout, "A customer enters a queue: the queue ID %1d, and length of the queue %2d. \n", p_myInfo->class_type, queue_length[p_myInfo->class_type]);
 
+	if(p_myInfo->class_type == 0){
+		enqueue(economy_q, p_myInfo->user_id);
+		queue_length[0]++;
+		// printf("size economy: %d\n", queue_length[0]);
+	}
+	else{
+		enqueue(business_q, p_myInfo->user_id);
+		queue_length[1]++;
+		// printf("size business: %d\n", queue_length[1]);
+	}
+
+	queue_enter_time = getCurrentSimulationTime();
+	
+	while (true) {
 		if(p_myInfo->class_type == 0){
-			enqueue(economy_q, p_myInfo->user_id);
+			pthread_cond_wait(&economy_cv, &economy_mutex);
 		}
 		else{
-			enqueue(business_q, p_myInfo->user_id);
+			pthread_cond_wait(&business_cv, &business_mutex);
 		}
 
-
-		// toString(selected_queue);
-
-		queue_enter_time = gettimeofday(&init_time, NULL);
-		
-		while (true) {
-			if(p_myInfo->class_type == 0){
-				pthread_cond_wait(&economy_cv, &economy_mutex);
-			}
-			else{
-				pthread_cond_wait(&business_cv, &business_mutex);
-			}
-			if ((p_myInfo->user_id == front(selected_queue)) && !(customer_selected[p_myInfo->class_type])){
-				dequeue(selected_queue);
-				customer_selected[p_myInfo->class_type] = true; // update the customer_selected variable to indicate that the first customer has been selected from the queue
-				break;
-			}
+		if ((p_myInfo->user_id == front(selected_queue)) && !(customer_selected[p_myInfo->class_type])){
+			dequeue(selected_queue);
+			queue_length[p_myInfo->class_type]--;
+			customer_selected[p_myInfo->class_type] = true; // update the customer_selected variable to indicate that the first customer has been selected from the queue
+			break;
 		}
-			
 	}
 
 	// pthread_mutex_unlock(&selected); //unlock mutex_lock such that other customers can enter into the queue
-	
-	/* Try to figure out which clerk awoken me, because you need to print the clerk Id information */
-	usleep(10); // Add a usleep here to make sure that all the other waiting threads have already got back to call pthread_cond_wait. 10 us will not harm your simulation time.
-	int clerk_woke_me_up = queue_status[p_myInfo->class_type];
-	queue_status[p_myInfo->class_type] = 0;
-
 	if(p_myInfo->class_type == 0){
 		pthread_mutex_unlock(&economy_mutex);
 	}
 	else{
 		pthread_mutex_unlock(&business_mutex);
 	}
+	
+	/* Try to figure out which clerk awoken me, because you need to print the clerk Id information */
+	usleep(10); // Add a usleep here to make sure that all the other waiting threads have already got back to call pthread_cond_wait. 10 us will not harm your simulation time.
+	int clerk_woke_me_up = queue_status[p_myInfo->class_type];
+	queue_status[p_myInfo->class_type] = 0;
+
+	// if(p_myInfo->class_type == 0){
+	// 	pthread_mutex_unlock(&economy_mutex);
+	// }
+	// else{
+	// 	pthread_mutex_unlock(&business_mutex);
+	// }
 	
 	// get the current machine time; updates the overall_waiting_time
 	double cur_time = getCurrentSimulationTime();
@@ -279,23 +289,26 @@ void *clerk_entry(void * clerkNum){
 
 		int* clerkID = (int *) clerkNum;
 
-		if(*clerkID == 1)
-			pthread_mutex_lock(&clerk1_mutex);
-		else if(*clerkID == 2)
-			pthread_mutex_lock(&clerk2_mutex);
-		else if(*clerkID == 3)
-			pthread_mutex_lock(&clerk3_mutex);
-		else
-			pthread_mutex_lock(&clerk4_mutex);
+		// if(*clerkID == 1)
+		// 	pthread_mutex_lock(&clerk1_mutex);
+		// else if(*clerkID == 2)
+		// 	pthread_mutex_lock(&clerk2_mutex);
+		// else if(*clerkID == 3)
+		// 	pthread_mutex_lock(&clerk3_mutex);
+		// else if(*clerkID == 4)
+		// 	pthread_mutex_lock(&clerk4_mutex);
 		
 		/* selected_queue_ID = Select the queue based on the priority and current customers number */
 		if(isEmpty(business_q) && !isEmpty(economy_q)){
-			// pthread_mutex_lock(&economy_mutex);			
-			queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
-			pthread_cond_broadcast(&economy_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
-			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
-
+			pthread_mutex_lock(&economy_mutex);
 			if(queue_status[selected_queue_ID] == 0){
+				queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
+				pthread_cond_broadcast(&economy_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
+				customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
+			}
+			pthread_mutex_unlock(&economy_mutex);
+
+			// if(queue_status[selected_queue_ID] != 0){
 				if(*clerkID == 1)
 					pthread_cond_wait(&clerk1_cv, &economy_mutex); // wait for the customer to finish its service, clerk busy
 				else if(*clerkID == 2)
@@ -304,18 +317,18 @@ void *clerk_entry(void * clerkNum){
 					pthread_cond_wait(&clerk3_cv, &economy_mutex);
 				else if(*clerkID == 4)
 					pthread_cond_wait(&clerk4_cv, &economy_mutex);
-			}
-
-			// pthread_mutex_unlock(&economy_mutex);
+			// }
 		}
 		else if(!isEmpty(business_q)){
 			selected_queue_ID = 1;
-			// pthread_mutex_lock(&business_mutex);			
-			queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
-			pthread_cond_broadcast(&business_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
-			customer_selected[selected_queue_ID] = false; // set the initial value as the customer has not selected from the queue.
-			
+			pthread_mutex_lock(&business_mutex);		
 			if(queue_status[selected_queue_ID] == 0){
+				queue_status[selected_queue_ID] = *clerkID; // The current clerk (clerkID) is signaling this queue			
+				pthread_cond_broadcast(&business_cv); // Awake the customer (the one enter into the queue first) from the longest queue (notice the customer he can get served now)
+				customer_selected[selected_queue_ID] = false;
+			} // set the initial value as the customer has not selected from the queue.
+			pthread_mutex_unlock(&business_mutex);
+			// if(queue_status[selected_queue_ID] != 0){
 				if(*clerkID == 1)
 					pthread_cond_wait(&clerk1_cv, &business_mutex); // wait for the customer to finish its service, clerk busy
 				else if(*clerkID == 2)
@@ -324,19 +337,17 @@ void *clerk_entry(void * clerkNum){
 					pthread_cond_wait(&clerk3_cv, &business_mutex);
 				else if(*clerkID == 4)
 					pthread_cond_wait(&clerk4_cv, &business_mutex);
-			}
-
-			// pthread_mutex_unlock(&business_mutex);
+			// }
 		}
 
-		if(*clerkID == 1)
-			pthread_mutex_unlock(&clerk1_mutex);
-		else if(*clerkID == 2)
-			pthread_mutex_unlock(&clerk2_mutex);
-		else if(*clerkID == 3)
-			pthread_mutex_unlock(&clerk3_mutex);
-		else
-			pthread_mutex_unlock(&clerk4_mutex);
+		// if(*clerkID == 1)
+		// 	pthread_mutex_unlock(&clerk1_mutex);
+		// else if(*clerkID == 2)
+		// 	pthread_mutex_unlock(&clerk2_mutex);
+		// else if(*clerkID == 3)
+		// 	pthread_mutex_unlock(&clerk3_mutex);
+		// else if(*clerkID == 4)
+		// 	pthread_mutex_unlock(&clerk4_mutex);
 
 	}
 
