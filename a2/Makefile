@@ -2,7 +2,7 @@
 all: ACS
 
 ACS: main.c
-	gcc main.c llist.c queue.c -pthread -o ACS
+	gcc main.c llist.c queue.c -lpthread -o ACS
 
 test: test.c
 	gcc test.c llist.c queue.c -pthread -o test
