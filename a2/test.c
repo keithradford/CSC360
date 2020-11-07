@@ -24,9 +24,9 @@ void *clerk_entry(void * clerkNum);
  
 static struct timeval init_time; // use this variable to record the simulation start time; No need to use mutex_lock when reading this variable since the value would not be changed by thread once the initial time was set.
 double overall_waiting_time; //A global variable to add up the overall waiting time for all customers, every customer add their own waiting time to this variable, mutex_lock is necessary.
-int queue_length[2];// variable stores the real-time queue length information; mutex_lock needed
+int queue_length[2] = {0, 0};// variable stores the real-time queue length information; mutex_lock needed
 
-int queue_status[2] ={0}; // variable to record the status of a queue, the value could be idle (not using by any clerk) or the clerk id (1 ~ 4), indicating that the corresponding clerk is now signaling this queue.
+int queue_status[2] ={0, 0}; // variable to record the status of a queue, the value could be idle (not using by any clerk) or the clerk id (1 ~ 4), indicating that the corresponding clerk is now signaling this queue.
 bool customer_selected[2] = {false}; // variable to record if the first customer in a queue has been successfully selected and left the queue.
 
 struct Node* head = NULL;
@@ -127,6 +127,14 @@ int main(int argc, char* argv[]) {
 	// pthread_cond_destroy(&clerk2_cv);
 	// pthread_cond_destroy(&clerk3_cv);
 	// pthread_cond_destroy(&clerk4_cv);
+	for(int i = 0; i < 2; i++){ // number of customers
+		pthread_mutex_destroy(&queue_mutex[i]);
+		pthread_cond_destroy(&queue_cv[i]);	
+	}
+	for(int i = 0; i < CLERK_AMNT; i++){
+		pthread_mutex_destroy(&clerk_mutex[i]);
+		pthread_cond_destroy(&clerk_cv[i]);
+	}
 	
 	// calculate the average waiting time of all customers
 	return 0;
@@ -188,7 +196,7 @@ void * customer_entry(void * cus_info){
 	// printf("arrival time %d\n", p_myInfo->arrival_time);
 	int arrival_time = p_myInfo->arrival_time;
 	int user_id = p_myInfo->user_id;
-	int selected_queue = p_myInfo->class_type;
+	int selected_queue_ID = p_myInfo->class_type;
 	int service_time = p_myInfo->service_time;
 	struct Queue* nodes_queue = NULL;
 
@@ -196,42 +204,59 @@ void * customer_entry(void * cus_info){
 
 	fprintf(stdout, "A customer arrives: customer ID %2d. \n", user_id);
 
-	pthread_mutex_lock(&queue_mutex[selected_queue]);
+	pthread_mutex_lock(&queue_mutex[selected_queue_ID]);
 
-	fprintf(stdout, "A customer enters a queue: the queue ID %1d, and length of the queue %2d.\n", selected_queue, queue_length[selected_queue]);
 
-	if(selected_queue == 0){
-		nodes_queue = economy_q;
-		// enqueue(economy_q, user_id);
+	// printf("customer ID %d locked %d\n", user_id, selected_queue_ID);
+
+	fprintf(stdout, "A customer enters a queue: the queue ID %1d, and length of the queue %2d.\n", selected_queue_ID, queue_length[selected_queue_ID]);
+
+	if(selected_queue_ID == 0){
+		// nodes_queue = economy_q;
+		enqueue(economy_q, user_id);
 	}
 	else{
-		nodes_queue = business_q;
-		// enqueue(business_q, user_id);
+		// nodes_queue = business_q;
+		enqueue(business_q, user_id);
 	}
-	enqueue(nodes_queue, user_id);
+	// enqueue(nodes_queue, user_id);
+	// usleep(1000000);
 	double queue_enter_time = getCurrentSimulationTime();
-	queue_length[selected_queue]++;
+	queue_length[selected_queue_ID]++;
 
 	while(1){
 		// printf("test\n");
-			// printf("Custome %d wait\n", user_id);
-		pthread_cond_wait(&queue_cv[selected_queue], &queue_mutex[selected_queue]);
+		// if(queue_status[selected_queue_ID] == 0)
+			pthread_cond_wait(&queue_cv[selected_queue_ID], &queue_mutex[selected_queue_ID]);
+
+			// printf("Custome %d dpne wait\n", user_id);
 
 		// printf("test\n");
-		if(user_id == front(nodes_queue) && !customer_selected[selected_queue]){
-			dequeue(nodes_queue);
-			queue_length[selected_queue]--;
-			customer_selected[selected_queue] = true;
+		if((user_id == front(economy_q) || user_id == front(business_q)) && !customer_selected[selected_queue_ID]){
+			if(selected_queue_ID == 0){
+				// nodes_queue = economy_q;
+				dequeue(economy_q);
+			}
+			else{
+				// nodes_queue = business_q;
+				dequeue(business_q);
+			}
+			// dequeue(nodes_queue);
+			queue_length[selected_queue_ID]--;
+			customer_selected[selected_queue_ID] = true;
 			break;
 		}		
 	}
-
-	pthread_mutex_unlock(&queue_mutex[selected_queue]);
+	// usleep(10);
+	pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
 
 	usleep(10);
 
-	int clerk_woke_me_up = queue_status[selected_queue];
-	queue_status[selected_queue] = 0;
+	pthread_mutex_lock(&queue_mutex[selected_queue_ID]);
+	int clerk_woke_me_up = queue_status[selected_queue_ID];
+	// printf("Setting queue %d to 0 from %d\n", selected_queue_ID, clerk_woke_me_up);
+	queue_status[selected_queue_ID] = 0;
+	pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
 
 	double curr_time = getCurrentSimulationTime();
 	fprintf(stdout, "A clerk starts serving a customer: start time %.2f, the customer ID %2d, the clerk ID %1d.\n", queue_enter_time, user_id, clerk_woke_me_up);
@@ -251,42 +276,62 @@ void * customer_entry(void * cus_info){
 // function entry for clerk threads
 void *clerk_entry(void * clerkNum){
 	int* clerkID = (int *) clerkNum;
-	printf("Clerk ID %d\n", *clerkID);
+	int selected_queue_ID = 0;
 
 	while(1){
-		int selected_queue_ID = 0;
 
+
+	// printf("Clerk ID %d\n", *clerkID);
 		// usleep(10);
-		if(isEmpty(business_q) && !isEmpty(economy_q)){
-			// printf("Locking economy in clerk\n");
-			pthread_mutex_lock(&queue_mutex[0]);
-		}
-		else if(!isEmpty(business_q)){
-			// printf("Locking business in clerk\n");		
+
+		if(queue_length[1] != 0){
 			selected_queue_ID = 1;
-			pthread_mutex_lock(&queue_mutex[1]);
 		}
+		else if(queue_length[0] != 0)
+			selected_queue_ID = 0;
 		else
 			continue;
 
 
-			// printf("Lacdsdvsd\n");	
+	// printf("queue_status %d locking %d\n", queue_status[selected_queue_ID], selected_queue_ID);
+		// usleep(10 * *clerkID);
 
-		if(queue_status[selected_queue_ID] == 0)
-			queue_status[selected_queue_ID] = *clerkID;
-		else
+	// usleep(100000 * *clerkID);
+		pthread_mutex_lock(&queue_mutex[selected_queue_ID]);
+
+	// printf("queue status %d and clerk id %d locked %d\n", queue_status[selected_queue_ID], *clerkID, selected_queue_ID);
+	usleep(100000);
+		if(queue_status[selected_queue_ID] != 0){
+			pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
+			usleep(10);
 			continue;
+		}
+		else{
 
-		pthread_cond_broadcast(&queue_cv[selected_queue_ID]);
+	// printf("clerk id %d ready to broadcast %d\n", *clerkID, selected_queue_ID);
+			queue_status[selected_queue_ID] = *clerkID;			
+			pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
+		}
 
+		pthread_mutex_lock(&queue_mutex[selected_queue_ID]);
 		customer_selected[selected_queue_ID] = false;
+		// printf("Broadcasing from clerk %d\n", *clerkID);
+		pthread_cond_broadcast(&queue_cv[selected_queue_ID]);
 
 		pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
 
+	// printf("Clerk ID %d unlocked %d\n", *clerkID, selected_queue_ID);
+
+	// printf("Clerk ID %d locking clerk\n", *clerkID);
 		pthread_mutex_lock(&clerk_mutex[*clerkID - 1]);
 
-		pthread_cond_wait(&clerk_cv[*clerkID - 1], &clerk_mutex[*clerkID - 1]);
+		// if(queue_status[selected_queue_ID] != 0){
+		
+			// printf("Clerk ID %d waiting %d\n", *clerkID, selected_queue_ID);
+					pthread_cond_wait(&clerk_cv[*clerkID - 1], &clerk_mutex[*clerkID - 1]);
+				// }
 
+			// printf("Clerk ID %d done waiting %d\n", *clerkID, selected_queue_ID);
 		pthread_mutex_unlock(&clerk_mutex[*clerkID - 1]);
 	}
 
