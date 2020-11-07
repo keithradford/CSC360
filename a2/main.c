@@ -18,11 +18,10 @@ void *clerk_entry(void * clerk_ID);
 
 // Global Variables 
 static struct timeval init_time;
-// double overall_waiting_time;
-double business_waiting_time;
+double business_waiting_time = 0.0;
 int business_total = 0;
 int economy_total = 0;
-double economy_waiting_time;
+double economy_waiting_time = 0.0;
 int queue_length[2] = {0, 0};
 int queue_status[2] ={0, 0};
 bool customer_selected[2] = {false};
@@ -121,8 +120,18 @@ int main(int argc, char* argv[]) {
 		pthread_mutex_destroy(&clerk_mutex[i]);
 		pthread_cond_destroy(&clerk_cv[i]);
 	}
-	
-	// calculate the average waiting time of all customers
+	pthread_mutex_destroy(&time_mutex);
+
+	// Find and print the average waiting times
+	double total_waiting_time = business_waiting_time + economy_waiting_time;
+	double total_avg = total_waiting_time / customer_amnt;
+	double business_avg = business_waiting_time / business_total;
+	double economy_avg = economy_waiting_time / economy_total;
+
+	printf("The average waiting time for all customers in the system is: %.2f seconds. \n", total_avg);
+	printf("The average waiting time for all business-class customers is: %.2f seconds. \n", business_avg);
+	printf("The average waiting time for all economy-class customers is: %.2f seconds. \n", economy_avg);
+
 	return 0;
 }
 
@@ -262,21 +271,28 @@ void * customer_entry(void * cus_info){
 	pthread_mutex_unlock(&queue_mutex[selected_queue_ID]);
 	// -------------------------QUEUE MUTEX UNLOCKED-------------------------//
 
-	double curr_time = get_current_time();
-	fprintf(stdout, "A clerk starts serving a customer: start time %.2f, the customer ID %2d, the clerk ID %1d.\n", queue_entry_time, user_id, selected_clerk);
+	double start_service = get_current_time();
+	fprintf(stdout, "A clerk starts serving a customer: start time %.2f, the customer ID %2d, the clerk ID %1d.\n", start_service, user_id, selected_clerk);
 
 	// A customer is serviced
 	usleep(service_time * 100000);
 
-	curr_time = get_current_time();
-	fprintf(stdout, "A clerk finishes serving a customer: end time %.2f, the customer ID %2d, the clerk ID %1d.\n", curr_time, user_id, selected_clerk);
+	double finish_service = get_current_time();
+	fprintf(stdout, "A clerk finishes serving a customer: end time %.2f, the customer ID %2d, the clerk ID %1d.\n", finish_service, user_id, selected_clerk);
 
+	// -------------------------TIME MUTEX LOCKED-------------------------//
+	pthread_mutex_lock(&time_mutex);
+	// Add waiting times (time customer is waiting in queue) to totals
 	if(selected_queue_ID == 0){
-		// economy_waiting_time = 
+		economy_waiting_time += (start_service - queue_entry_time);
+		economy_total++;
 	}
 	else{
-		//waiting time
+		business_waiting_time += (start_service - queue_entry_time);
+		business_total++;
 	}
+	pthread_mutex_unlock(&time_mutex);
+	// -------------------------TIME MUTEX UNLOCKED-------------------------//
 
 	// Signal to clerk that customer is done service
 	pthread_cond_signal(&clerk_cv[selected_clerk - 1]);
