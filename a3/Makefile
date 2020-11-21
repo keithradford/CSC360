@@ -1,18 +1,18 @@
 .phony all:
 all: diskinfo disklist diskget diskput
 
-diskinfo: main.c
-	gcc main.c -o diskinfo
+diskinfo: diskinfo.c
+	gcc diskinfo.c -o diskinfo
 
-disklist: main.c
-	gcc main.c -o disklist
+disklist: disklist.c
+	gcc disklist.c -o disklist
 
-diskget: main.c
-	gcc main.c -o diskget
+diskget: diskget.c
+	gcc diskget.c -o diskget
 
-diskput: main.c
-	gcc main.c -o diskput
+diskput: diskput.c
+	gcc diskput.c -o diskput
 
 .PHONY clean:
 clean:
-	-rm -rf *.o *.exe ACS
+	-rm -rf *.o *.exe diskinfo disklist diskget diskput
