@@ -17,6 +17,18 @@
 #define DIRECTORY_SIZE 32
 #define ATTRIBUTE_OFFSET 11
 #define SECTOR_SIZE 512
+#define DATA_OFFSET 16896
+#define FIRST_LOGICAL_CLUSTER_OFFSET 26
+#define FAT_NUMBER_OFFSET 16
+#define SECTORS_PER_FAT_OFFSET 22
+
+const char *osName(char *p);
+const char *diskLabel(char *p);
+int diskSize(char *p);
+int freeSize(char *p, int size);
+int fileAmount(char *p);
+int fatAmount(char *p);
+int sectorsPerFat(char *p);
 
 int main(int argc, char *argv[]){
 	int fd;
@@ -40,16 +52,51 @@ int main(int argc, char *argv[]){
 	}
 	
 	// Get the OS Name from Boot Sector
-	char os[OS_SIZE];
+	const char *os = osName(p);
+	printf("OS Name: %s\n", os);
+
+	// Get label of the disk from Root Directory
+	const char *label = diskLabel(p);
+	printf("Label of the disk: %s\n", label);
+
+	// Get size of disk
+	printf("Total size of the disk: %lu bytes\n", (uint64_t)sb.st_size);
+
+	int free_count = freeSize(p, (uint64_t)sb.st_size);
+	printf("Free size of the disk: %d bytes\n", free_count);
+
+	printf("==============\n");
+
+	int file_amount = fileAmount(p);
+	printf("The number of files in the image: %d\n", file_amount);
+
+	printf("==============\n");
+
+	int fat_amount = fatAmount(p);
+	printf("Number of FAT copies: %d\n", fat_amount);
+
+	int sectors_per_fat = sectorsPerFat(p);
+	printf("Sectors per FAT: %d\n", sectors_per_fat);
+	
+	munmap(p, sb.st_size);
+	close(fd);
+
+	return 1;
+}
+
+const char *osName(char *p){
+	char *os = malloc( 8 * sizeof(char) );
 	for(int i = 0; i < OS_SIZE; i++){
 		os[i] = p[OS_OFFSET + i];
 	}
 	os[OS_SIZE] = '\0';
-	printf("OS Name: %s\n", os);
 
-	// Get label of the disk from Root Directory
-	char label[LABEL_SIZE];
-	for(int i = ROOT_DIRECTORY; i <= (uint64_t)sb.st_size; i += DIRECTORY_SIZE){
+	return os;
+}
+
+const char *diskLabel(char *p){
+	char *label = malloc( LABEL_SIZE * (sizeof(char)) );
+	for(int i = ROOT_DIRECTORY; i <= DATA_OFFSET; i += DIRECTORY_SIZE){
 		// Check if volume label of Attribute is set
 		if(CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 3) && p[i + ATTRIBUTE_OFFSET] != 0x0F){
 			// Copy Filename into label string
@@ -59,17 +106,21 @@ int main(int argc, char *argv[]){
 			break;
 		}
 	}
-	printf("Label of the disk: %s\n", label);
 
-	// Get size of disk
-	printf("Total size of the disk: %lu bytes\n", (uint64_t)sb.st_size);
+	return label;
+}
 
+int diskSize(char *p){
+	return 0;
+}
+
+int freeSize(char *p, int size){
 	int free_count = 0;
 	int n = 0;
 	int odd, even;
 	// Get free size of disk
 	// Iterates through each sector in data area
-	for(int i = 0; i <= ((uint64_t)sb.st_size/SECTOR_SIZE - 32); i++){
+	for(int i = 0; i <= (size/SECTOR_SIZE - 32); i++){
 		odd = 1 + (3*n)/2;
 		even = (3*n)/2;
 		int a = p[512 + odd] & 0x000000FF;
@@ -87,10 +138,32 @@ int main(int argc, char *argv[]){
 		n++;
 	}
 	free_count *= SECTOR_SIZE;
-	printf("Free size of the disk: %d bytes\n", free_count);
-	
-	munmap(p, sb.st_size);
-	close(fd);
 
-	return 1;
+	return free_count;
+}
+
+int fileAmount(char *p){
+	int count = 0;
+	for(int i = ROOT_DIRECTORY; i <= DATA_OFFSET; i += DIRECTORY_SIZE){
+		// Check if volume label of Attribute is set
+		if(CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 3) 
+			|| p[i + ATTRIBUTE_OFFSET] == 0x0F
+			|| p[i] == 0xE5
+			|| p[i] == 0x004
+			|| (p[i + FIRST_LOGICAL_CLUSTER_OFFSET] == 0 && (p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] == 0 || p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] == 1))
+		){
+			continue;
+		}
+		count++;
+	}
+
+	return count;
+}
+
+int fatAmount(char *p){
+	return p[FAT_NUMBER_OFFSET];
+}
+
+int sectorsPerFat(char *p){
+	return p[SECTORS_PER_FAT_OFFSET];
 }
