@@ -21,6 +21,7 @@
 #define FIRST_LOGICAL_CLUSTER_OFFSET 26
 #define FAT_NUMBER_OFFSET 16
 #define SECTORS_PER_FAT_OFFSET 22
+#define SECTOR_OFFSET 19
 
 const char *osName(char *p);
 const char *diskLabel(char *p);
@@ -60,9 +61,10 @@ int main(int argc, char *argv[]){
 	printf("Label of the disk: %s\n", label);
 
 	// Get size of disk
-	printf("Total size of the disk: %lu bytes\n", (uint64_t)sb.st_size);
+	int total_size = diskSize(p);
+	printf("Total size of the disk: %d bytes\n", total_size);
 
-	int free_count = freeSize(p, (uint64_t)sb.st_size);
+	int free_count = freeSize(p, total_size);
 	printf("Free size of the disk: %d bytes\n", free_count);
 
 	printf("==============\n");
@@ -111,7 +113,11 @@ const char *diskLabel(char *p){
 }
 
 int diskSize(char *p){
-	return 0;
+	int high = p[SECTOR_OFFSET + 1] << 8;
+	int low = p[SECTOR_OFFSET];
+	int sector_count = high + low;
+
+	return sector_count * 512;
 }
 
 int freeSize(char *p, int size){
