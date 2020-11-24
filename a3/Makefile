@@ -15,4 +15,4 @@ diskput: diskput.c
 
 .PHONY clean:
 clean:
-	-rm -rf *.o *.exe diskinfo disklist diskget diskput
+	-rm -rf *.o *.exe diskinfo disklist diskget diskput ANS1.PDF REMINDER.TXT ICEBERGS.TEX
