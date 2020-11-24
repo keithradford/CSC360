@@ -150,16 +150,22 @@ int freeSize(char *p, int size){
 
 int fileAmount(char *p){
 	int count = 0;
-	for(int i = ROOT_DIRECTORY; i <= DATA_OFFSET; i += DIRECTORY_SIZE){
+	for(int i = ROOT_DIRECTORY; i < DATA_OFFSET; i += DIRECTORY_SIZE){
+		int high = p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
+		int low = p[i + FIRST_LOGICAL_CLUSTER_OFFSET];
+		int first_logical_cluster = high + low;
 		// Check if volume label of Attribute is set
-		if(CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 3) 
+		if(
+			CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 3) 
 			|| p[i + ATTRIBUTE_OFFSET] == 0x0F
-			|| p[i] == 0xE5
-			|| p[i] == 0x004
-			|| (p[i + FIRST_LOGICAL_CLUSTER_OFFSET] == 0 && (p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] == 0 || p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] == 1))
+			|| (p[i] & 0xFF) == 0xE5
+			|| (p[i] & 0xFF) == 0x00
+			|| first_logical_cluster == 0
+			|| first_logical_cluster == 1
 		){
 			continue;
 		}
+
 		count++;
 	}
 
