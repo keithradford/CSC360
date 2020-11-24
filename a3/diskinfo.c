@@ -87,7 +87,7 @@ int main(int argc, char *argv[]){
 }
 
 const char *osName(char *p){
-	char *os = malloc( 8 * sizeof(char) );
+	char *os = malloc( OS_SIZE * sizeof(char) );
 	for(int i = 0; i < OS_SIZE; i++){
 		os[i] = p[OS_OFFSET + i];
 	}
