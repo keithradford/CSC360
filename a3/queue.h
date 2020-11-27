@@ -3,6 +3,7 @@
 
 struct Node {
 	char *name;
+	char *path;
 	int sector;
 };
 
@@ -16,7 +17,7 @@ struct Queue {
 struct Queue* createQueue(unsigned capacity);
 int isFull(struct Queue* queue);
 int isEmpty(struct Queue* queue);
-void enqueue(struct Queue* queue, const char *name, int sector);
+void enqueue(struct Queue* queue, char *path,const char *name, int sector);
 struct Node dequeue(struct Queue* queue);
 struct Node front(struct Queue* queue);
 void toString(struct Queue* queue);

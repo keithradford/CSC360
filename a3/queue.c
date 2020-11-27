@@ -28,10 +28,11 @@ int isEmpty(struct Queue* queue){
 	return (queue->size == 0);
 }
 
-void enqueue(struct Queue* queue, const char *name, int sector){
+void enqueue(struct Queue* queue, char *path, const char *name, int sector){
 	// printf("enqueue %s %d\n", name, sector);
 	struct Node n;
 	n.name = name;
+	n.path = path;
 	n.sector = sector;
 
 	if(isFull(queue))

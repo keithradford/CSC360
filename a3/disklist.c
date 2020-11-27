@@ -34,10 +34,12 @@ int getFatEntry(char *p, int n);
 const char *getFileName(char *p, int start, int directory);
 int getFileSize(char *p, int start);
 const char *getFileDate(char *p, int start);
-void printFiles(char *p, int start, int root);
+void printFiles(char *p, int start, int root, char *parent);
 int diskSize(char *p);
 
 struct Queue* directories = NULL;
+
+char *months[12] = {"Jan", "Feb", "Mar", "Apr", "May", "June", "July", "Aug", "Sept", "Oct", "Nov", "Dec"};
 
 int main(int argc, char *argv[]){
 	int fd;
@@ -62,7 +64,7 @@ int main(int argc, char *argv[]){
 		exit(1);
 	}
 
-	printFiles(p, ROOT_DIRECTORY, 0);
+	printFiles(p, ROOT_DIRECTORY, 0, "");
 	// for(int i = ROOT_DIRECTORY; i < DATA_OFFSET; i += DIRECTORY_SIZE){
 	// 	int high = p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
 	// 	int low = p[i + FIRST_LOGICAL_CLUSTER_OFFSET];
@@ -192,18 +194,44 @@ void printFileDate(char *p, int start){
 	//the day is stored in the low five bits
 	day = (date & 0x1F);
 	
-	printf("%d-%02d-%02d ", year, month, day);
+	printf("%s %2d %d ", months[month - 1], day, year);
 	//the hours are stored in the high five bits
 	hours = (time & 0xF800) >> 11;
 	//the minutes are stored in the middle 6 bits
 	minutes = (time & 0x7E0) >> 5;
 	
-	printf("%02d:%02d\n", hours, minutes);
+	printf("%02d:%02d", hours, minutes);
 	
 	return;	
 }
 
-void printFiles(char *p, int start, int directory){
+char *getPath(char *name, char *parent){
+	int name_len = strlen(name);
+	int parent_len = strlen(parent);
+	int len = name_len + parent_len + 1;
+	char *to_ret = malloc(sizeof(char) * len);
+	int j = 0;
+
+	if(!parent_len)
+		return name;
+
+	for(int i = 0; i < len; i++){
+		if(i < parent_len)
+			to_ret[i] = parent[i];
+		else if(i > parent_len){
+			to_ret[i] = name[j];
+			j++;
+		}
+		else
+			to_ret[i] = '/';
+	}
+
+	// printf("return: %s\n", to_ret);
+
+	return to_ret;
+}
+
+void printFiles(char *p, int start, int directory, char *parent){
 	int dir_count = 0;
 	int bound = 0;
 	int sector_number = 0;
@@ -249,20 +277,20 @@ void printFiles(char *p, int start, int directory){
 		if(CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 4)){
 			size = 0;
 			const char *name = getFileName(p, i, 1);
-			printf("D %10d %20s ", size, name);
+			printf("D %10d %15s ", size, name);
 			printFileDate(p, i);
 			printf("\n");
 			int sector = (33 + first_logical_cluster - 2) * 512;
 
 			// printf("eq");
-			enqueue(directories, name, sector);
+			enqueue(directories, parent, name, sector);
 
 			// dir_count++;
 		}
 		else{
 			const char *name = getFileName(p, i, 0);
 			size = getFileSize(p, i);
-			printf("F %10d %20s ", size, name);
+			printf("F %10d %15s ", size, name);
 			printFileDate(p, i);
 			printf("\n");
 		}
@@ -271,11 +299,18 @@ void printFiles(char *p, int start, int directory){
 	struct Node n;
 	while(!isEmpty(directories)){
 		n = dequeue(directories);
-		printf("%s\n==================\n", n.name);
-		if(directory == 0)
-			printFiles(p, n.sector + 32, 1);
-		else
-			printFiles(p, n.sector + 64, 2);
+		// printf("%s\n==================\n", n.name);
+		if(directory == 0){
+			// printf("Parent: %s, Name: %s\n", n.path, n.name);
+			printf("\n/%s\n==================\n", n.name);
+			printFiles(p, n.sector + 32, 1, n.name);
+		}
+		else{
+			char *path = getPath(n.name, n.path);
+			// printf("Parent: %s, Name: %s\n", n.path, n.name);
+			printf("\n/%s\n==================\n", path);
+			printFiles(p, n.sector + 64, 2, path);
+		}
 	}
 
 	return;
