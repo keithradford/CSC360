@@ -14,7 +14,7 @@
 
 #define ATTRIBUTE_OFFSET 11
 #define DATA_OFFSET 16896
-#define DATE_OFFSET 24
+#define DATE_OFFSET 16
 #define DIRECTORY_SIZE 32
 #define EXTENSION_SIZE 3
 #define FAT_NUMBER_OFFSET 1
@@ -28,7 +28,7 @@
 #define SECTOR_OFFSET 19
 #define SECTOR_SIZE 512
 #define SECTORS_PER_FAT_OFFSET 22
-#define TIME_OFFSET 22
+#define TIME_OFFSET 14
 
 int getFatEntry(char *p, int n);
 const char *getFileName(char *p, int start, int directory);
@@ -193,6 +193,8 @@ void printFileDate(char *p, int start){
 	month = (date & 0x1E0) >> 5;
 	//the day is stored in the low five bits
 	day = (date & 0x1F);
+	if(!months[month - 1])
+		return;
 	
 	printf("%s %2d %d ", months[month - 1], day, year);
 	//the hours are stored in the high five bits

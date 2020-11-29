@@ -14,16 +14,10 @@
 #define DATA_OFFSET 16896
 #define DIRECTORY_SIZE 32
 #define EXTENSION_SIZE 3
-#define FAT_NUMBER_OFFSET 1
+#define FILE_SIZE_OFFSET 28
 #define FIRST_LOGICAL_CLUSTER_OFFSET 26
-#define LABEL_SIZE 9
 #define NAME_SIZE 9
-#define OS_OFFSET 3
-#define OS_SIZE 8
 #define ROOT_DIRECTORY 9728
-#define SECTOR_OFFSET 19
-#define SECTOR_SIZE 512
-#define SECTORS_PER_FAT_OFFSET 22
 
 const char *getFileName(char *p, int start);
 void writeToFile(char *p, int start, const char *file);
@@ -55,10 +49,10 @@ int main(int argc, char *argv[]){
 	}
 
 	int found = 0;
-	for(int i = ROOT_DIRECTORY; i < DATA_OFFSET; i += DIRECTORY_SIZE){
-		int high = p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
-		int low = p[i + FIRST_LOGICAL_CLUSTER_OFFSET];
-		int first_logical_cluster = high + low;
+	for(int i = ROOT_DIRECTORY; i < 1474560; i += DIRECTORY_SIZE){
+		unsigned int high = p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
+		unsigned int low = p[i + FIRST_LOGICAL_CLUSTER_OFFSET];
+		unsigned int first_logical_cluster = high + low;
 		// Check if volume label of Attribute is set
 		if(
 			CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 3) 
@@ -133,8 +127,8 @@ const char *getFileName(char *p, int start){
 }
 
 void writeToFile(char *p, int start, const char *file){
-	int high = p[start + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
-	int low = p[start + FIRST_LOGICAL_CLUSTER_OFFSET];
+	int high = (p[start + FIRST_LOGICAL_CLUSTER_OFFSET + 1] & 0xFF) << 8;
+	int low = p[start + FIRST_LOGICAL_CLUSTER_OFFSET] & 0xFF;
 	int first_logical_cluster = high + low;
 
 	int fourth = (p[start + FILE_SIZE_OFFSET + 3] & 0xFF) << 24;
@@ -145,13 +139,10 @@ void writeToFile(char *p, int start, const char *file){
 
 	// printf("%x %x %x %x\n", fourth, third, second, first);
 
-	// printf("First Logical Cluster: %x\nFile Size: %d\n", first_logical_cluster, file_size);
 	FILE *fp;
 	fp = fopen(file, "w");
 	int sector = (33 + first_logical_cluster - 2) * 512;
 	for(int i = 0; i < file_size; i++){
-		if((p[sector + i] & 0xFF) == 0x00)
-			break;
 		fputc(p[sector + i], fp);
 	}
 	fclose(fp);

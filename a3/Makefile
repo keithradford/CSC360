@@ -11,7 +11,7 @@ diskget: diskget.c
 	gcc diskget.c -o diskget
 
 diskput: diskput.c
-	gcc diskput.c -o diskput
+	gcc diskput.c -o diskput -lm
 
 .PHONY clean:
 clean:
