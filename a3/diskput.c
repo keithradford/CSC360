@@ -248,7 +248,6 @@ int getFatEntry(char *p, int n){
 }
 
 int findFreeEntries(char *p, int size){
-	static int to_ret[2];
 	// double amnt = (double)size/512;
 	// printf("%d\n", (int)ceil(amnt));
 	int count = 0;
@@ -275,7 +274,7 @@ int findFreeEntries(char *p, int size){
 		}
 	}
 
-	return n;
+	return n - 31;
 }
 
 void putFatEntries(char *p, int n, int amnt){
@@ -289,7 +288,7 @@ void putFatEntries(char *p, int n, int amnt){
 	// If n is even, first 4 bits are in next byte
 	// Remaining 8 bits are in current byte
 	if(n % 2 == 0){
-		for(int i = 0; i < size; i++){
+		for(int i = 0; i < amnt; i++){
 			if(i == (size - 1)){
 				p[512 + i + odd] = ((0xFF9 << 12) & 0x000000FF) + p[512 + i + odd];
 				p[512 + i + even] = 0xFF9 & 0x000000FF;
@@ -304,7 +303,7 @@ void putFatEntries(char *p, int n, int amnt){
 	// If n is odd, first 4 bits are in current byte
 	// Remaining 8 bits are in next byte
 	else{
-		for(int i = 0; i < size; i++){
+		for(int i = 0; i < amnt; i++){
 			if(i == (size - 1)){
 				p[512 + i + even] = ((0xFF9 << 12) & 0x000000FF) + p[512 + i + even];
 				p[512 + i + odd] = 0xFF9 & 0x000000FF;
@@ -318,6 +317,38 @@ void putFatEntries(char *p, int n, int amnt){
 	}
 
 	return;
+}
+
+void writeData(char *p, const char *file, int start, int size){
+	FILE *fp;
+    char ch;
+    int i = 0;
+
+    //2
+    printf("%d\n", start);
+    fp = fopen(file, "r");
+
+    //3
+    if (fp == NULL)
+    {
+        printf("File is not available \n");
+    }
+    else
+    {
+        //4
+        while ((ch = fgetc(fp)) != EOF)
+        {
+            printf("%c", ch);
+            p[start + i] = ch;
+            i++;
+        }
+    }
+
+    //5
+    fclose(fp);
+
+    return;
+
 }
 
 char* setDirectoryEntry(char *p, char* file, int start, struct stat sb){
@@ -350,6 +381,7 @@ char* setDirectoryEntry(char *p, char* file, int start, struct stat sb){
 	}
 
 	printf("file name %s\n", getFileName(p, i, 0));
+	const char *file_name = getFileName(p, i, 0);
 
 	// printf("%c %c %c\n", p[start + EXTENSION_OFFSET], p[start + EXTENSION_OFFSET + 1], p[start + EXTENSION_OFFSET + 2]);
 
@@ -426,6 +458,8 @@ char* setDirectoryEntry(char *p, char* file, int start, struct stat sb){
 	int fat_start = findFreeEntries(p, (int)ceil(amnt));
 	putFatEntries(p, fat_start, (int)ceil(amnt));
 	printf("%d\n", fat_start);
+
+	writeData(p, file_name, (fat_start + 31)*512, sb.st_size);
 
 	// first logical cluster 26
 
