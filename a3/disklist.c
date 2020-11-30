@@ -169,7 +169,9 @@ int getFileSize(char *p, int start){
 	int third = (p[start + FILE_SIZE_OFFSET + 2] & 0xFF) << 16;
 	int second = (p[start + FILE_SIZE_OFFSET + 1] & 0xFF) << 8;
 	int first = p[start + FILE_SIZE_OFFSET] & 0xFF;
-	int file_size = first + third + second + first;
+	int file_size = first + third + second + fourth;
+
+	// printf("FILE SIZE: %d %d %d %d %d\n", file_size, fourth, third, second, first);
 
 	return file_size;
 }

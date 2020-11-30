@@ -130,6 +130,7 @@ void writeToFile(char *p, int start, const char *file){
 	int high = (p[start + FIRST_LOGICAL_CLUSTER_OFFSET + 1] & 0xFF) << 8;
 	int low = p[start + FIRST_LOGICAL_CLUSTER_OFFSET] & 0xFF;
 	int first_logical_cluster = high + low;
+	// printf("%d\n", first_logical_cluster);
 
 	int fourth = (p[start + FILE_SIZE_OFFSET + 3] & 0xFF) << 24;
 	int third = (p[start + FILE_SIZE_OFFSET + 2] & 0xFF) << 16;
@@ -143,6 +144,7 @@ void writeToFile(char *p, int start, const char *file){
 	fp = fopen(file, "w");
 	int sector = (33 + first_logical_cluster - 2) * 512;
 	for(int i = 0; i < file_size; i++){
+		// printf("%c\n", p[sector + i]);
 		fputc(p[sector + i], fp);
 	}
 	fclose(fp);

@@ -338,7 +338,7 @@ void writeData(char *p, const char *file, int start, int size){
         //4
         while ((ch = fgetc(fp)) != EOF)
         {
-            printf("%c", ch);
+            // printf("%c", ch);
             p[start + i] = ch;
             i++;
         }
@@ -459,9 +459,34 @@ char* setDirectoryEntry(char *p, char* file, int start, struct stat sb){
 	putFatEntries(p, fat_start, (int)ceil(amnt));
 	printf("%d\n", fat_start);
 
-	writeData(p, file_name, (fat_start + 31)*512, sb.st_size);
+	int sector = (fat_start + 31);
+	writeData(p, file_name, sector * 512, sb.st_size);
 
 	// first logical cluster 26
+
+	uint16_t first_logical_cluster = fat_start;
+
+	bytes[0] = *((uint8_t*)&(first_logical_cluster)+1);
+	bytes[1] = *((uint8_t*)&(first_logical_cluster)+0);
+
+	p[i + FIRST_LOGICAL_CLUSTER_OFFSET] = bytes[1];
+	p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] = bytes[0];
+
+	uint32_t size = sb.st_size;
+
+	uint8_t four_bytes[4];
+
+	four_bytes[0] = *((uint8_t*)&(size)+3);
+	four_bytes[1] = *((uint8_t*)&(size)+2);
+	four_bytes[2] = *((uint8_t*)&(size)+1);
+	four_bytes[3] = *((uint8_t*)&(size));
+
+	p[i + FILE_SIZE_OFFSET] = four_bytes[3];
+	p[i + FILE_SIZE_OFFSET + 1] = four_bytes[2];
+	p[i + FILE_SIZE_OFFSET + 2] = four_bytes[1];
+	p[i + FILE_SIZE_OFFSET + 3] = four_bytes[0];
+	printf("%d %x %x %x %x\n", size,four_bytes[3], four_bytes[2], four_bytes[1], four_bytes[0]);
+
 
 	// file size 28
 }
