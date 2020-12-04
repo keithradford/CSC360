@@ -1,56 +1,30 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdint.h>
-#include <sys/mman.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
+#include "utils.h"
 
-#define CHECK_BIT(var, pos) (((var)>>(pos)) & 1)
 
-#define ATTRIBUTE_OFFSET 11
-#define DATA_OFFSET 16896
-#define DIRECTORY_SIZE 32
-#define EXTENSION_SIZE 3
-#define FAT_NUMBER_OFFSET 16
-#define FIRST_LOGICAL_CLUSTER_OFFSET 26
-#define LABEL_SIZE 9
-#define NAME_SIZE 9
-#define OS_OFFSET 3
-#define OS_SIZE 8
-#define ROOT_DIRECTORY 9728
-#define SECTOR_OFFSET 19
-#define SECTOR_SIZE 512
-#define SECTORS_PER_FAT_OFFSET 22
-
+// Function signatures
 const char *osName(char *p);
 const char *diskLabel(char *p);
-int diskSize(char *p);
 int freeSize(char *p, int size);
 int fileAmount(char *p, int start, int root);
 int fatAmount(char *p);
 int sectorsPerFat(char *p);
-const char *getFileName(char *p, int start);
-int getFatEntry(char *p, int n);
 
 int main(int argc, char *argv[]){
 	int fd;
 	struct stat sb;
-	char *disk = malloc ( strlen(argv[1]) * sizeof(char) );
 
 	if(argc != 2){
 		printf("Error: diskinfo usage must be \n./diskinfo <DISK>\n");
 		exit(1);
 	}
 	
-	strcpy(disk, argv[1]);	
+	char *disk = malloc ( strlen(argv[1]) * sizeof(char) );
 
+	// Open the given disk and map into p
+	strcpy(disk, argv[1]);	
 	fd = open(disk, O_RDWR);
 	fstat(fd, &sb);
-
-	char * p = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0); // p points to the starting pos of your mapped memory
+	char * p = mmap(NULL, sb.st_size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
 	if (p == MAP_FAILED) {
 		printf("Error: failed to map memory\n");
 		exit(1);
@@ -68,19 +42,23 @@ int main(int argc, char *argv[]){
 	int total_size = diskSize(p);
 	printf("Total size of the disk: %d bytes\n", total_size);
 
+	// Get free size of disk
 	int free_count = freeSize(p, total_size);
 	printf("Free size of the disk: %d bytes\n", free_count);
 
 	printf("==============\n");
 
+	// Get number of files in image
 	int file_amount = fileAmount(p, ROOT_DIRECTORY, 1);
 	printf("The number of files in the image: %d\n", file_amount);
 
 	printf("==============\n");
 
+	// Get number of fat copies
 	int fat_amount = fatAmount(p);
 	printf("Number of FAT copies: %d\n", fat_amount);
 
+	// Get sectors per FAT
 	int sectors_per_fat = sectorsPerFat(p);
 	printf("Sectors per FAT: %d\n", sectors_per_fat);
 	
@@ -90,65 +68,15 @@ int main(int argc, char *argv[]){
 	return 1;
 }
 
-int getFatEntry(char *p, int n){
-	n = n - 31;
-	int size = diskSize(p);
-
-	int odd = 1 + (3*n)/2;
-	int even = (3*n)/2;
-	int a = p[512 + odd] & 0x000000FF;
-	int b = p[512 + even] & 0x000000FF;
-	// If n is even, first 4 bits are in next byte
-	// Remaining 8 bits are in current byte
-	if(n % 2 == 0){
-		return (a << 12) + b;
-	}
-	// If n is odd, first 4 bits are in current byte
-	// Remaining 8 bits are in next byte
-	else{
-		return (b << 12) + a;
-	}
-}
-
-const char *getFileName(char *p, int start){
-	char *name = malloc(NAME_SIZE * sizeof(char));
-	char *extension = malloc(NAME_SIZE * sizeof(char));
-	char *file_name = malloc((NAME_SIZE + EXTENSION_SIZE + 1) * sizeof(char));
-
-	// Copy Filename into label string
-	int j;
-	for(j = 0; j < NAME_SIZE - 1; j++){
-		if(p[start + j] == 0x20)
-			break;
-		name[j] = p[start + j];
-	}
-	name[j] = '\0';
-
-	int i = 0;
-	for(int k = 8; k < 11; k++){
-		extension[i] = p[start + k];
-		i++;
-	}
-
-	int n = 0;
-	for(int k = 0; k < 12; k++){
-		if(k < strlen(name)){
-			file_name[k] = name[k];
-		}
-		else if(k > strlen(name)){
-			if(n > 3)
-				break;
-			file_name[k] = extension[n];
-			n++;
-		}
-		else{
-			file_name[k] = '.';
-		}
-	}
-
-	return file_name;
-}
-
+/*
+ * Function: osName
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * Returns: A string containing the OS name on the disk
+ *
+ * Iterates through the Boot Sector from the specified offset of the OS name
+ * copying the OS name stored on the disk into a string to be printed out.
+ */
 const char *osName(char *p){
 	char *os = malloc( OS_SIZE * sizeof(char) );
 	for(int i = 0; i < OS_SIZE; i++){
@@ -159,6 +87,16 @@ const char *osName(char *p){
 	return os;
 }
 
+/*
+ * Function: diskLabel
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * Returns: A string containing the disk label of the disk
+ *
+ * Iterates through the Root Directory checking each directory entries attribute.
+ * If the 3rd bit of the attribute is set, than the directory entry contains the disk label.
+ * Once found, it copies the characters into a string to be returned.
+ */
 const char *diskLabel(char *p){
 	char *label = malloc( LABEL_SIZE * (sizeof(char)) );
 	for(int i = ROOT_DIRECTORY; i <= DATA_OFFSET; i += DIRECTORY_SIZE){
@@ -175,26 +113,24 @@ const char *diskLabel(char *p){
 	return label;
 }
 
-int diskSize(char *p){
-	int high = p[SECTOR_OFFSET + 1] << 8;
-	int low = p[SECTOR_OFFSET];
-	int sector_count = high + low;
-
-	return sector_count * 512;
-}
-
+/*
+ * Function: freeSize
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * size, an integer containing the size of the disk
+ * Returns: An integer of the amount of free bytes on the disk
+ *
+ * Iterates through the FAT entries counting how many are equal to zero.
+ * A FAT entry represents 512 bytes in the data section, and if it is zero
+ * these 512 bytes are free space.
+ * Multiplies sector count by 512 to represent amount of bytes.
+ */
 int freeSize(char *p, int size){
 	int free_count = 0;
-	// int n = 0;
 	int odd, even;
-	// Get free size of disk
+
 	// Iterates through each sector in data area
 	for(int n = 33; n < (size/SECTOR_SIZE); n++){
-		odd = 1 + (3*n)/2;
-		even = (3*n)/2;
-		int a = p[512 + odd] & 0x000000FF;
-		int b = p[512 + even] & 0x000000FF;
-
 		if(getFatEntry(p, n) == 0x00){
 			free_count++;
 		}
@@ -204,10 +140,25 @@ int freeSize(char *p, int size){
 	return free_count;
 }
 
+/*
+ * Function: fileAmount
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * start, an integer containing the offset of the directory to count files in
+ * directory, a flag telling the program if it is in:
+ * root directory (directory = 0), one level down (directory = 1), 2+ levels down (directory = 2)
+ * Returns: An integer of the amount of files on the disk
+ *
+ * Iterates recursively through the file structure on the disk counting the amount of files.
+ * If it finds a directory, it goes to that directories location and counts the files there,
+ * then returns to it's previous location.
+ */
 int fileAmount(char *p, int start, int directory){
 	int count = 0;
 	int bound = 0;
 	int sector = 0;
+
+	// These if statements deal with "." and ".." in the directory entries
 	if(directory == 0){
 		bound = DATA_OFFSET;
 	}
@@ -229,6 +180,8 @@ int fileAmount(char *p, int start, int directory){
 			bound = start + SECTOR_SIZE - 64;
 		}
 	}
+
+	// Iterate through directory
 	for(int i = start; i < bound; i += DIRECTORY_SIZE){
 		int high = p[i + FIRST_LOGICAL_CLUSTER_OFFSET + 1] << 8;
 		int low = p[i + FIRST_LOGICAL_CLUSTER_OFFSET];
@@ -246,9 +199,7 @@ int fileAmount(char *p, int start, int directory){
 		}
 
 		if(CHECK_BIT(p[i + ATTRIBUTE_OFFSET], 4)){
-			// printf("Going into subdirectory %s\n", getFileName(p, i));
 			int sector = (33 + first_logical_cluster - 2) * 512;
-			// printf("Going into subdirectory %s @ %d\n", getFileName(p, i), sector);
 			if(directory == 0)
 				count += fileAmount(p, sector + DIRECTORY_SIZE, 1);
 			else
@@ -262,10 +213,27 @@ int fileAmount(char *p, int start, int directory){
 	return count;
 }
 
+/*
+ * Function: fatAmount
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * Returns: An integer of the amount of FAT entries on the disk
+ *
+ * Checks the byte in the Boot Sector representing the amount of FAT entries.
+ */
 int fatAmount(char *p){
 	return p[FAT_NUMBER_OFFSET];
 }
 
+
+/*
+ * Function: sectorsPerFat
+ * Parameter(s):
+ * p, a string of containing all disk information.
+ * Returns: An integer of the amount of sectors per FAT
+ *
+ * Checks the byte in the Boot Sector representing the amount of sectors per FAT entry.
+ */
 int sectorsPerFat(char *p){
 	return p[SECTORS_PER_FAT_OFFSET];
 }
