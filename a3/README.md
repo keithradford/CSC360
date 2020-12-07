@@ -13,3 +13,4 @@ in a disk, diskget which fetches files from disks into a local directory, and di
 
 ## Notes
 Diskput is currently broken. Seems to be a bug for bigger files, works with smaller text files. Also is putting in the wrong date. Everything else should work.
+When using Diskput and Diskget, use all uppercase for file names and paths. I.e. SUB1/ANS1.PDF will work but sub1/ans1.pdf will not.
